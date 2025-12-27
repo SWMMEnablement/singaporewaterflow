@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Droplets, Menu, X, BookOpen } from "lucide-react";
+import { Droplets, Menu, X, BookOpen, Palette } from "lucide-react";
 
 interface NavItem {
   label: string;
@@ -14,10 +14,10 @@ const navItems: NavItem[] = [
   { label: "St. Venant", href: "/#who-was-st-venant" },
   { label: "The Equations", href: "/#equations" },
   { label: "Water Cycle", href: "/#water-cycle" },
-  { label: "SWMM5", href: "/#swmm5" },
   { label: "Singapore", href: "/#singapore" },
   { label: "Quiz", href: "/#quiz" },
   { label: "Glossary", href: "/glossary", isPage: true, icon: <BookOpen className="w-4 h-4" /> },
+  { label: "Coloring", href: "/coloring", isPage: true, icon: <Palette className="w-4 h-4" /> },
 ];
 
 export const Navbar = () => {
