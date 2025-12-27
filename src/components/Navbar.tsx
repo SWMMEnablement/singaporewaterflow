@@ -1,19 +1,30 @@
 import { useState, useEffect } from "react";
-import { Droplets, Menu, X } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Droplets, Menu, X, BookOpen } from "lucide-react";
 
-const navItems = [
-  { label: "Home", href: "#" },
-  { label: "St. Venant", href: "#who-was-st-venant" },
-  { label: "The Equations", href: "#equations" },
-  { label: "Water Cycle", href: "#water-cycle" },
-  { label: "SWMM5", href: "#swmm5" },
-  { label: "Singapore", href: "#singapore" },
-  { label: "Quiz", href: "#quiz" },
+interface NavItem {
+  label: string;
+  href: string;
+  isPage?: boolean;
+  icon?: React.ReactNode;
+}
+
+const navItems: NavItem[] = [
+  { label: "Home", href: "/" },
+  { label: "St. Venant", href: "/#who-was-st-venant" },
+  { label: "The Equations", href: "/#equations" },
+  { label: "Water Cycle", href: "/#water-cycle" },
+  { label: "SWMM5", href: "/#swmm5" },
+  { label: "Singapore", href: "/#singapore" },
+  { label: "Quiz", href: "/#quiz" },
+  { label: "Glossary", href: "/glossary", isPage: true, icon: <BookOpen className="w-4 h-4" /> },
 ];
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,11 +34,40 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleNavClick = (href: string) => {
+  const handleNavClick = (item: NavItem) => {
     setIsMobileMenuOpen(false);
-    if (href === "#") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    if (item.isPage) {
+      navigate(item.href);
+      return;
     }
+
+    if (item.href === "/") {
+      if (location.pathname === "/") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        navigate("/");
+      }
+      return;
+    }
+
+    // Handle hash navigation
+    const hash = item.href.replace("/#", "#");
+    if (location.pathname !== "/") {
+      navigate("/" + hash);
+    } else {
+      const element = document.querySelector(hash);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  };
+
+  const isActive = (item: NavItem) => {
+    if (item.isPage) {
+      return location.pathname === item.href;
+    }
+    return false;
   };
 
   return (
@@ -41,35 +81,38 @@ export const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a
-            href="#"
-            onClick={() => handleNavClick("#")}
+          <button
+            onClick={() => handleNavClick({ label: "Home", href: "/" })}
             className="flex items-center gap-2 group"
           >
             <Droplets className="w-7 h-7 text-primary group-hover:animate-bounce-slow" />
             <span className="font-display font-bold text-lg text-foreground hidden sm:block">
               St. Venant Water Flow
             </span>
-          </a>
+          </button>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.label}
-                href={item.href}
-                onClick={() => handleNavClick(item.href)}
-                className="px-3 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-all"
+                onClick={() => handleNavClick(item)}
+                className={`px-3 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  isActive(item)
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                }`}
               >
+                {item.icon}
                 {item.label}
-              </a>
+              </button>
             ))}
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-full hover:bg-primary/10 transition-colors"
+            className="lg:hidden p-2 rounded-full hover:bg-primary/10 transition-colors"
             aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? (
@@ -82,17 +125,21 @@ export const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border bg-card/95 backdrop-blur-md">
+          <div className="lg:hidden py-4 border-t border-border bg-card/95 backdrop-blur-md">
             <div className="flex flex-col gap-2">
               {navItems.map((item) => (
-                <a
+                <button
                   key={item.label}
-                  href={item.href}
-                  onClick={() => handleNavClick(item.href)}
-                  className="px-4 py-3 rounded-2xl text-base font-medium text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-all"
+                  onClick={() => handleNavClick(item)}
+                  className={`px-4 py-3 rounded-2xl text-base font-medium transition-all text-left flex items-center gap-2 ${
+                    isActive(item)
+                      ? "bg-primary/20 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
+                  }`}
                 >
+                  {item.icon}
                   {item.label}
-                </a>
+                </button>
               ))}
             </div>
           </div>
