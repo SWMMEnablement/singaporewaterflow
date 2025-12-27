@@ -8,7 +8,7 @@ export const Footer = () => {
           <div className="flex items-center justify-center gap-2 mb-4">
             <Droplets className="w-8 h-8 text-primary" />
             <span className="font-display text-2xl font-bold text-foreground">
-              St. Venant for Grandkids
+              St. Venant Water Flow for Grandkids
             </span>
           </div>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">

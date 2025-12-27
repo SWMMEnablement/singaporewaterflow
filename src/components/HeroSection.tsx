@@ -20,7 +20,7 @@ export const HeroSection = () => {
         </div>
 
         <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
-          St. Venant for{" "}
+          St. Venant Water Flow for{" "}
           <span className="text-gradient">Grandkids</span>
           <span className="inline-block animate-wiggle ml-2">💧</span>
         </h1>
