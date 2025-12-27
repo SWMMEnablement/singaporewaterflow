@@ -1,4 +1,6 @@
 import { Building2, TreePine, Waves, Umbrella } from "lucide-react";
+import { DrainageAnimation } from "./DrainageAnimation";
+import { PipeFlowAnimation } from "./PipeFlowAnimation";
 
 export const SingaporeSection = () => {
   return (
@@ -13,6 +15,19 @@ export const SingaporeSection = () => {
             Singapore is a tiny island with BIG rain! Here&apos;s why the St. Venant equations 
             help keep Singapore safe and dry! 🌧️
           </p>
+        </div>
+
+        {/* Animated Drainage System */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <h3 className="font-display text-xl font-bold text-center mb-4">
+            🌧️ Watch How Singapore&apos;s Drainage Works!
+          </h3>
+          <DrainageAnimation />
+        </div>
+
+        {/* Pipe Cross Section */}
+        <div className="max-w-3xl mx-auto mb-12">
+          <PipeFlowAnimation />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
