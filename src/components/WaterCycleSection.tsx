@@ -1,4 +1,5 @@
 import { Cloud, Droplets, ArrowDown, Building2, Waves, Repeat } from "lucide-react";
+import { WaterAnimation } from "./WaterAnimation";
 
 const cycleSteps = [
   {
@@ -56,6 +57,11 @@ export const WaterCycleSection = () => {
             Follow a raindrop&apos;s adventure from the sky to the drains of Singapore! 
             This is how rain becomes stormwater. 💧➡️🌊
           </p>
+        </div>
+
+        {/* Animated Water Graphic */}
+        <div className="max-w-4xl mx-auto mb-12">
+          <WaterAnimation />
         </div>
 
         {/* Visual Cycle Diagram */}
