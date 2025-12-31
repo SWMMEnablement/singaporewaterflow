@@ -3,6 +3,13 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { 
   Droplets, 
   Play, 
@@ -19,9 +26,67 @@ import {
   Sparkles,
   Gauge,
   AlertTriangle,
-  Zap
+  Zap,
+  Award,
+  BookOpen,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
+
+// Achievement definitions
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  condition: (stats: SimulationStats) => boolean;
+}
+
+interface SimulationStats {
+  score: number;
+  rainfallIntensity: number;
+  overflowCount: number;
+  totalDrops: number;
+  flowRate: number;
+}
+
+const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: "storm_master",
+    name: "Storm Master",
+    description: "Handle an extreme storm (level 5) with 100% collection!",
+    icon: <Zap className="w-6 h-6 text-yellow-500" />,
+    condition: (stats) => stats.rainfallIntensity === 5 && stats.score === 100,
+  },
+  {
+    id: "no_overflow",
+    name: "Perfect Pipes",
+    description: "Complete any level without a single overflow!",
+    icon: <Award className="w-6 h-6 text-green-500" />,
+    condition: (stats) => stats.score === 100 && stats.overflowCount === 0,
+  },
+  {
+    id: "heavy_weather",
+    name: "Heavy Weather Hero",
+    description: "Collect 100% at rainfall level 4 or higher!",
+    icon: <CloudRain className="w-6 h-6 text-blue-500" />,
+    condition: (stats) => stats.rainfallIntensity >= 4 && stats.score === 100,
+  },
+  {
+    id: "flood_fighter",
+    name: "Flood Fighter",
+    description: "Survive a storm with 3+ overflows and still collect some water!",
+    icon: <Waves className="w-6 h-6 text-cyan-500" />,
+    condition: (stats) => stats.overflowCount >= 3 && stats.score > 0,
+  },
+  {
+    id: "efficiency_expert",
+    name: "Efficiency Expert",
+    description: "Achieve a flow rate of 2+ drops per second!",
+    icon: <Gauge className="w-6 h-6 text-purple-500" />,
+    condition: (stats) => stats.flowRate >= 2,
+  },
+];
 
 type CellType = "empty" | "pipe-vertical" | "pipe-horizontal" | "pipe-corner-br" | "pipe-corner-bl" | "pipe-corner-tr" | "pipe-corner-tl" | "drain-grate" | "reservoir" | "rain-cloud" | "locked";
 
@@ -214,6 +279,12 @@ const BuildDrain = () => {
     Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0))
   );
   const simulationStartTime = useRef<number>(0);
+  
+  // Learning popup and achievements
+  const [showLearningPopup, setShowLearningPopup] = useState(false);
+  const [earnedAchievements, setEarnedAchievements] = useState<string[]>([]);
+  const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
+  const [hasSeenOverflowLesson, setHasSeenOverflowLesson] = useState(false);
 
   const availableComponents = currentChallenge 
     ? allComponents.filter(c => currentChallenge.availableComponents.includes(c.type))
@@ -451,7 +522,30 @@ const BuildDrain = () => {
         const percentage = Math.round((reachedReservoir / totalDrops) * 100);
         setScore(percentage);
         
-        if (newOverflows.length > 0) {
+        // Check for achievements
+        const stats: SimulationStats = {
+          score: percentage,
+          rainfallIntensity,
+          overflowCount: newOverflows.length,
+          totalDrops,
+          flowRate: simulationStartTime.current > 0 
+            ? Math.round((reachedReservoir / ((Date.now() - simulationStartTime.current) / 1000)) * 10) / 10 
+            : 0,
+        };
+        
+        ACHIEVEMENTS.forEach(achievement => {
+          if (!earnedAchievements.includes(achievement.id) && achievement.condition(stats)) {
+            setEarnedAchievements(prev => [...prev, achievement.id]);
+            setNewAchievement(achievement);
+            toast.success(`🏆 Achievement Unlocked: ${achievement.name}!`);
+          }
+        });
+        
+        // Show learning popup on first overflow
+        if (newOverflows.length > 0 && !hasSeenOverflowLesson) {
+          setShowLearningPopup(true);
+          setHasSeenOverflowLesson(true);
+        } else if (newOverflows.length > 0) {
           toast.warning(`⚠️ ${newOverflows.length} pipe(s) overflowed! Try larger pipes or fewer drops.`);
         }
         
@@ -469,7 +563,7 @@ const BuildDrain = () => {
     };
 
     setTimeout(moveWater, stepDelay);
-  }, [grid, currentChallenge, completedChallenges, rainfallIntensity]);
+  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson]);
 
   const renderCell = (cell: Cell, row: number, col: number) => {
     const hasWater = waterDrops.some(d => d.row === row && d.col === col);
@@ -589,11 +683,100 @@ const BuildDrain = () => {
     );
   };
 
+  // Learning Popup Component
+  const LearningPopup = () => (
+    <Dialog open={showLearningPopup} onOpenChange={setShowLearningPopup}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <BookOpen className="w-6 h-6 text-primary" />
+            Learn About Flooding!
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+            <h4 className="font-bold text-destructive flex items-center gap-2 mb-2">
+              <AlertTriangle className="w-5 h-5" />
+              What Happened?
+            </h4>
+            <p className="text-sm text-muted-foreground">
+              Your pipes overflowed! This happens when too much water tries to flow through a pipe at once.
+            </p>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+              <CloudRain className="w-8 h-8 text-primary shrink-0" />
+              <div>
+                <h5 className="font-semibold text-sm">Rainfall Intensity</h5>
+                <p className="text-xs text-muted-foreground">
+                  Stronger storms create more raindrops. Level 5 storms produce 5× more water than level 1!
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+              <Gauge className="w-8 h-8 text-primary shrink-0" />
+              <div>
+                <h5 className="font-semibold text-sm">Pipe Capacity</h5>
+                <p className="text-xs text-muted-foreground">
+                  Each pipe can only handle a certain number of drops. Corner pipes (2 max) hold less than straight pipes (3 max)!
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
+              <Waves className="w-8 h-8 text-primary shrink-0" />
+              <div>
+                <h5 className="font-semibold text-sm">Real-World Flooding</h5>
+                <p className="text-xs text-muted-foreground">
+                  This is exactly why cities flood! When rain falls faster than drains can handle, water backs up and overflows onto streets.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <h4 className="font-bold text-green-700 dark:text-green-400 text-sm mb-1">💡 Engineer's Tip</h4>
+            <p className="text-xs text-muted-foreground">
+              Try using drain grates (5 capacity) near rain clouds, or reduce rainfall intensity to prevent overflow!
+            </p>
+          </div>
+          
+          <Button onClick={() => setShowLearningPopup(false)} className="w-full">
+            Got it! Let me try again
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  // Achievement Popup Component
+  const AchievementPopup = () => (
+    <Dialog open={newAchievement !== null} onOpenChange={() => setNewAchievement(null)}>
+      <DialogContent className="max-w-sm text-center">
+        <div className="py-4">
+          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mb-4 animate-bounce">
+            {newAchievement?.icon}
+          </div>
+          <h2 className="font-display text-2xl font-bold mb-2">Achievement Unlocked!</h2>
+          <h3 className="text-xl font-semibold text-primary mb-2">{newAchievement?.name}</h3>
+          <p className="text-muted-foreground">{newAchievement?.description}</p>
+          <Button onClick={() => setNewAchievement(null)} className="mt-6">
+            Awesome!
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   // Menu View
   if (mode === "menu") {
     return (
       <>
         <Navbar />
+        <LearningPopup />
+        <AchievementPopup />
         <main className="min-h-screen pt-20 pb-12 bg-gradient-to-b from-background to-secondary/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
@@ -608,6 +791,36 @@ const BuildDrain = () => {
                 Choose a challenge or build freely in sandbox mode!
               </p>
             </div>
+
+            {/* Achievements Display */}
+            {earnedAchievements.length > 0 && (
+              <Card className="max-w-2xl mx-auto mb-6 p-4">
+                <h3 className="font-display font-bold text-lg mb-3 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-500" />
+                  Your Achievements ({earnedAchievements.length}/{ACHIEVEMENTS.length})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {ACHIEVEMENTS.map((achievement) => {
+                    const earned = earnedAchievements.includes(achievement.id);
+                    return (
+                      <div
+                        key={achievement.id}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm ${
+                          earned 
+                            ? "bg-primary/10 text-primary" 
+                            : "bg-muted text-muted-foreground opacity-50"
+                        }`}
+                        title={achievement.description}
+                      >
+                        {achievement.icon}
+                        <span className={earned ? "font-medium" : ""}>{achievement.name}</span>
+                        {earned && <span>✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
             {/* Sandbox Mode Card */}
             <Card 
@@ -695,6 +908,8 @@ const BuildDrain = () => {
   return (
     <>
       <Navbar />
+      <LearningPopup />
+      <AchievementPopup />
       <main className="min-h-screen pt-20 pb-12 bg-gradient-to-b from-background to-secondary/20">
         <div className="container mx-auto px-4">
           {/* Header */}
