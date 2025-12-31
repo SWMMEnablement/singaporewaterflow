@@ -333,6 +333,107 @@ const challenges: Challenge[] = [
   },
   {
     id: 7,
+    name: "T-Junction Training",
+    difficulty: "medium",
+    description: "Learn to use T-junctions to merge two water streams into one!",
+    hint: "A T-junction facing up (↑) can catch water from both sides and send it down!",
+    initialGrid: (() => {
+      const grid = createEmptyGrid();
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+    availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl", "pipe-t-up"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[2][1] = { type: "pipe-corner-br" };
+      grid[2][2] = { type: "pipe-t-up" };
+      grid[2][3] = { type: "pipe-horizontal" };
+      grid[2][4] = { type: "pipe-corner-bl" };
+      grid[3][2] = { type: "pipe-vertical" };
+      grid[4][2] = { type: "pipe-corner-bl" };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+  },
+  {
+    id: 8,
+    name: "Split Decision",
+    difficulty: "medium",
+    description: "Use a T-junction to split water into two reservoirs!",
+    hint: "A T-junction facing down (↓) splits water left and right!",
+    initialGrid: (() => {
+      const grid = createEmptyGrid();
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[5][0] = { type: "reservoir", locked: true };
+      grid[5][5] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+    availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-bl", "pipe-corner-br", "pipe-t-down"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[2][2] = { type: "pipe-t-down" };
+      grid[2][0] = { type: "pipe-corner-bl" };
+      grid[2][1] = { type: "pipe-horizontal" };
+      grid[2][3] = { type: "pipe-horizontal" };
+      grid[2][4] = { type: "pipe-horizontal" };
+      grid[2][5] = { type: "pipe-corner-br" };
+      grid[3][0] = { type: "pipe-vertical" };
+      grid[3][5] = { type: "pipe-vertical" };
+      grid[4][0] = { type: "pipe-vertical" };
+      grid[4][5] = { type: "pipe-vertical" };
+      grid[5][0] = { type: "reservoir", locked: true };
+      grid[5][5] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+  },
+  {
+    id: 9,
+    name: "Main Drain Highway",
+    difficulty: "medium",
+    description: "Heavy rain is coming! Use main drains to handle the high water volume.",
+    hint: "Main drains can handle 8 drops - much more than regular pipes!",
+    initialGrid: (() => {
+      const grid = createEmptyGrid();
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[0][3] = { type: "rain-cloud", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[1][3] = { type: "drain-grate", locked: true };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+    availableComponents: ["pipe-vertical", "pipe-corner-br", "pipe-corner-bl", "main-drain-vertical", "pipe-t-up"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[0][3] = { type: "rain-cloud", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[1][3] = { type: "drain-grate", locked: true };
+      grid[2][1] = { type: "pipe-corner-br" };
+      grid[2][2] = { type: "pipe-t-up" };
+      grid[2][3] = { type: "pipe-corner-bl" };
+      grid[3][2] = { type: "main-drain-vertical" };
+      grid[4][2] = { type: "pipe-vertical" };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+  },
+  {
+    id: 10,
     name: "Resource Rush",
     difficulty: "hard",
     description: "Handle 3 rain clouds with LIMITED pipes! Use T-junctions wisely to merge flows.",
@@ -345,7 +446,6 @@ const challenges: Challenge[] = [
       grid[1][0] = { type: "drain-grate", locked: true };
       grid[1][3] = { type: "drain-grate", locked: true };
       grid[1][5] = { type: "drain-grate", locked: true };
-      // Obstacles to make it interesting
       grid[3][1] = { type: "locked", locked: true };
       grid[3][4] = { type: "locked", locked: true };
       grid[5][2] = { type: "reservoir", locked: true };
@@ -393,6 +493,128 @@ const challenges: Challenge[] = [
       grid[4][4] = { type: "pipe-horizontal" };
       grid[4][5] = { type: "pipe-corner-bl" };
       grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+  },
+  {
+    id: 11,
+    name: "Flood Defense Expert",
+    difficulty: "hard",
+    description: "Four rain clouds threaten the city! Build an efficient drainage network.",
+    hint: "Combine T-junctions and main drains to handle heavy water flow!",
+    initialGrid: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[0][5] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[1][5] = { type: "drain-grate", locked: true };
+      grid[3][1] = { type: "locked", locked: true };
+      grid[3][3] = { type: "locked", locked: true };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+    availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl", "pipe-t-down", "pipe-t-up", "pipe-t-left", "main-drain-vertical"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[0][5] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[1][5] = { type: "drain-grate", locked: true };
+      grid[2][0] = { type: "pipe-corner-br" };
+      grid[2][1] = { type: "pipe-t-up" };
+      grid[2][2] = { type: "pipe-corner-bl" };
+      grid[2][4] = { type: "pipe-corner-br" };
+      grid[2][5] = { type: "pipe-corner-bl" };
+      grid[3][1] = { type: "locked", locked: true };
+      grid[3][3] = { type: "locked", locked: true };
+      grid[3][4] = { type: "pipe-t-left" };
+      grid[4][1] = { type: "pipe-corner-br" };
+      grid[4][2] = { type: "main-drain-vertical" };
+      grid[4][3] = { type: "pipe-horizontal" };
+      grid[4][4] = { type: "pipe-corner-bl" };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+  },
+  {
+    id: 12,
+    name: "Ultimate Storm Challenge",
+    difficulty: "hard",
+    description: "The biggest storm ever! Use ALL your engineering skills with limited resources.",
+    hint: "Plan carefully - every pipe counts! Main drains are essential for high-volume areas.",
+    initialGrid: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[0][5] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[1][5] = { type: "drain-grate", locked: true };
+      grid[2][2] = { type: "locked", locked: true };
+      grid[2][3] = { type: "locked", locked: true };
+      grid[4][1] = { type: "locked", locked: true };
+      grid[4][4] = { type: "locked", locked: true };
+      grid[5][2] = { type: "reservoir", locked: true };
+      grid[5][3] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+    availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl", "pipe-t-down", "pipe-t-up", "main-drain-vertical", "main-drain-horizontal"],
+    limitedInventory: {
+      "empty": 999,
+      "rain-cloud": 0,
+      "drain-grate": 0,
+      "pipe-vertical": 5,
+      "pipe-horizontal": 4,
+      "pipe-corner-br": 3,
+      "pipe-corner-bl": 3,
+      "pipe-corner-tr": 0,
+      "pipe-corner-tl": 0,
+      "pipe-t-down": 2,
+      "pipe-t-up": 2,
+      "pipe-t-left": 0,
+      "pipe-t-right": 0,
+      "main-drain-vertical": 2,
+      "main-drain-horizontal": 1,
+      "reservoir": 0,
+      "locked": 0,
+    },
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[0][5] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[1][5] = { type: "drain-grate", locked: true };
+      grid[2][0] = { type: "pipe-corner-br" };
+      grid[2][1] = { type: "pipe-corner-bl" };
+      grid[2][2] = { type: "locked", locked: true };
+      grid[2][3] = { type: "locked", locked: true };
+      grid[2][4] = { type: "pipe-corner-br" };
+      grid[2][5] = { type: "pipe-corner-bl" };
+      grid[3][0] = { type: "pipe-t-up" };
+      grid[3][4] = { type: "pipe-t-up" };
+      grid[4][0] = { type: "pipe-corner-br" };
+      grid[4][1] = { type: "locked", locked: true };
+      grid[4][2] = { type: "main-drain-vertical" };
+      grid[4][3] = { type: "main-drain-vertical" };
+      grid[4][4] = { type: "locked", locked: true };
+      grid[4][5] = { type: "pipe-corner-bl" };
+      grid[5][0] = { type: "main-drain-horizontal" };
+      grid[5][2] = { type: "reservoir", locked: true };
+      grid[5][3] = { type: "reservoir", locked: true };
       return grid;
     })(),
   },
