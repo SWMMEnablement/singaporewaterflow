@@ -88,7 +88,7 @@ const ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
-type CellType = "empty" | "pipe-vertical" | "pipe-horizontal" | "pipe-corner-br" | "pipe-corner-bl" | "pipe-corner-tr" | "pipe-corner-tl" | "drain-grate" | "reservoir" | "rain-cloud" | "locked";
+type CellType = "empty" | "pipe-vertical" | "pipe-horizontal" | "pipe-corner-br" | "pipe-corner-bl" | "pipe-corner-tr" | "pipe-corner-tl" | "pipe-t-down" | "pipe-t-up" | "pipe-t-left" | "pipe-t-right" | "main-drain-vertical" | "main-drain-horizontal" | "drain-grate" | "reservoir" | "rain-cloud" | "locked";
 
 interface Cell {
   type: CellType;
@@ -122,6 +122,12 @@ const PIPE_CAPACITY: Record<CellType, number> = {
   "pipe-corner-bl": 2,
   "pipe-corner-tr": 2,
   "pipe-corner-tl": 2,
+  "pipe-t-down": 4,    // T-junctions have higher capacity
+  "pipe-t-up": 4,
+  "pipe-t-left": 4,
+  "pipe-t-right": 4,
+  "main-drain-vertical": 8,   // Main drains have much higher capacity
+  "main-drain-horizontal": 8,
   "drain-grate": 5,
   "reservoir": 999,
   "rain-cloud": 999,
@@ -249,13 +255,19 @@ const challenges: Challenge[] = [
   },
 ];
 
-const allComponents: { type: CellType; label: string; icon: React.ReactNode; description: string }[] = [
+const allComponents: { type: CellType; label: string; icon: React.ReactNode; description: string; capacity?: number }[] = [
   { type: "rain-cloud", label: "Rain Cloud", icon: <CloudRain className="w-6 h-6" />, description: "Where rain starts!" },
-  { type: "drain-grate", label: "Drain Grate", icon: <Square className="w-6 h-6" />, description: "Catches rainwater" },
-  { type: "pipe-vertical", label: "Vertical Pipe", icon: <ArrowDown className="w-6 h-6" />, description: "Water flows down" },
-  { type: "pipe-horizontal", label: "Horizontal Pipe", icon: <ArrowRight className="w-6 h-6" />, description: "Water flows sideways" },
-  { type: "pipe-corner-br", label: "Corner ↓→", icon: <div className="w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-lg" />, description: "Turns water right" },
-  { type: "pipe-corner-bl", label: "Corner ↓←", icon: <div className="w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-lg" />, description: "Turns water left" },
+  { type: "drain-grate", label: "Drain Grate", icon: <Square className="w-6 h-6" />, description: "Catches rainwater", capacity: 5 },
+  { type: "pipe-vertical", label: "Vertical Pipe", icon: <ArrowDown className="w-6 h-6" />, description: "Water flows down", capacity: 3 },
+  { type: "pipe-horizontal", label: "Horizontal Pipe", icon: <ArrowRight className="w-6 h-6" />, description: "Water flows sideways", capacity: 3 },
+  { type: "pipe-corner-br", label: "Corner ↓→", icon: <div className="w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-lg" />, description: "Turns water right", capacity: 2 },
+  { type: "pipe-corner-bl", label: "Corner ↓←", icon: <div className="w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-lg" />, description: "Turns water left", capacity: 2 },
+  { type: "pipe-t-down", label: "T-Junction ↓", icon: <div className="w-6 h-6 border-b-2 border-l-2 border-r-2 border-primary" />, description: "Splits flow left & right", capacity: 4 },
+  { type: "pipe-t-up", label: "T-Junction ↑", icon: <div className="w-6 h-6 border-t-2 border-l-2 border-r-2 border-primary" />, description: "Merges from left & right", capacity: 4 },
+  { type: "pipe-t-left", label: "T-Junction ←", icon: <div className="w-6 h-6 border-l-2 border-t-2 border-b-2 border-primary" />, description: "Splits up & down", capacity: 4 },
+  { type: "pipe-t-right", label: "T-Junction →", icon: <div className="w-6 h-6 border-r-2 border-t-2 border-b-2 border-primary" />, description: "Splits up & down", capacity: 4 },
+  { type: "main-drain-vertical", label: "Main Drain ↓", icon: <div className="w-6 h-6 flex items-center justify-center"><div className="w-3 h-6 bg-primary rounded-sm" /></div>, description: "High capacity! (8 drops)", capacity: 8 },
+  { type: "main-drain-horizontal", label: "Main Drain →", icon: <div className="w-6 h-6 flex items-center justify-center"><div className="w-6 h-3 bg-primary rounded-sm" /></div>, description: "High capacity! (8 drops)", capacity: 8 },
   { type: "reservoir", label: "Reservoir", icon: <Waves className="w-6 h-6" />, description: "Stores water safely!" },
 ];
 
@@ -489,9 +501,9 @@ const BuildDrain = () => {
 
         if (nextCell.type === "drain-grate" && drop.direction === "down") {
           nextDirection = "down";
-        } else if (nextCell.type === "pipe-vertical") {
+        } else if (nextCell.type === "pipe-vertical" || nextCell.type === "main-drain-vertical") {
           nextDirection = "down";
-        } else if (nextCell.type === "pipe-horizontal") {
+        } else if (nextCell.type === "pipe-horizontal" || nextCell.type === "main-drain-horizontal") {
           // Keep horizontal direction
         } else if (nextCell.type === "pipe-corner-br") {
           nextDirection = drop.direction === "down" ? "right" : "down";
@@ -501,6 +513,35 @@ const BuildDrain = () => {
           nextDirection = "right";
         } else if (nextCell.type === "pipe-corner-tl") {
           nextDirection = "left";
+        } else if (nextCell.type === "pipe-t-down") {
+          // T pointing down: water from top goes down, water from sides continues
+          if (drop.direction === "down") {
+            nextDirection = "down";
+          } else {
+            nextDirection = drop.direction; // continue left or right
+          }
+        } else if (nextCell.type === "pipe-t-up") {
+          // T pointing up: water flows up into horizontal, then left or right
+          if (drop.direction === "down") {
+            // Split: randomly go left or right
+            nextDirection = Math.random() > 0.5 ? "left" : "right";
+          } else {
+            nextDirection = drop.direction;
+          }
+        } else if (nextCell.type === "pipe-t-left") {
+          // T pointing left: vertical water continues, horizontal goes left
+          if (drop.direction === "down") {
+            nextDirection = "down";
+          } else {
+            nextDirection = "left";
+          }
+        } else if (nextCell.type === "pipe-t-right") {
+          // T pointing right: vertical water continues, horizontal goes right
+          if (drop.direction === "down") {
+            nextDirection = "down";
+          } else {
+            nextDirection = "right";
+          }
         }
 
         newDrops.push({
@@ -624,6 +665,58 @@ const BuildDrain = () => {
           return (
             <div className="relative w-full h-full">
               <div className={`w-full h-full border-t-4 border-l-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-tl-2xl`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
+          );
+        case "pipe-t-down":
+          return (
+            <div className="relative w-full h-full flex items-end justify-center">
+              <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-4 h-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-t-full`} />
+              <div className={`absolute bottom-1/2 left-0 w-full h-4 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"}`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
+          );
+        case "pipe-t-up":
+          return (
+            <div className="relative w-full h-full flex items-start justify-center">
+              <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-b-full`} />
+              <div className={`absolute top-1/2 left-0 w-full h-4 -translate-y-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"}`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
+          );
+        case "pipe-t-left":
+          return (
+            <div className="relative w-full h-full flex items-center justify-start">
+              <div className={`absolute left-1/2 top-0 h-full w-4 -translate-x-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"}`} />
+              <div className={`absolute left-0 top-1/2 w-1/2 h-4 -translate-y-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-l-full`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
+          );
+        case "pipe-t-right":
+          return (
+            <div className="relative w-full h-full flex items-center justify-end">
+              <div className={`absolute left-1/2 top-0 h-full w-4 -translate-x-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"}`} />
+              <div className={`absolute right-0 top-1/2 w-1/2 h-4 -translate-y-1/2 ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-r-full`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
+          );
+        case "main-drain-vertical":
+          return (
+            <div className={`w-6 h-full ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-lg relative overflow-hidden border-2 ${hasWater ? "border-primary" : "border-muted-foreground/30"}`}>
+              {hasWater && <div className="absolute inset-0 bg-primary animate-pulse" />}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-1 h-full bg-background/20" />
+              </div>
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
+          );
+        case "main-drain-horizontal":
+          return (
+            <div className={`h-6 w-full ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-lg relative overflow-hidden border-2 ${hasWater ? "border-primary" : "border-muted-foreground/30"}`}>
+              {hasWater && <div className="absolute inset-0 bg-primary animate-pulse" />}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-1 w-full bg-background/20" />
+              </div>
               {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
             </div>
           );
