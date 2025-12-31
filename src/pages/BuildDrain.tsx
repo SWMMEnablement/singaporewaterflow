@@ -29,7 +29,9 @@ import {
   Zap,
   Award,
   BookOpen,
-  X
+  X,
+  ShoppingBag,
+  Package
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -271,6 +273,27 @@ const allComponents: { type: CellType; label: string; icon: React.ReactNode; des
   { type: "reservoir", label: "Reservoir", icon: <Waves className="w-6 h-6" />, description: "Stores water safely!" },
 ];
 
+// Default pipe inventory for sandbox mode
+const DEFAULT_PIPE_INVENTORY: Record<CellType, number> = {
+  "empty": 999,
+  "rain-cloud": 3,
+  "drain-grate": 4,
+  "pipe-vertical": 6,
+  "pipe-horizontal": 6,
+  "pipe-corner-br": 4,
+  "pipe-corner-bl": 4,
+  "pipe-corner-tr": 3,
+  "pipe-corner-tl": 3,
+  "pipe-t-down": 2,
+  "pipe-t-up": 2,
+  "pipe-t-left": 2,
+  "pipe-t-right": 2,
+  "main-drain-vertical": 1,
+  "main-drain-horizontal": 1,
+  "reservoir": 2,
+  "locked": 0,
+};
+
 const BuildDrain = () => {
   const [mode, setMode] = useState<"menu" | "sandbox" | "challenge">("menu");
   const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null);
@@ -281,6 +304,10 @@ const BuildDrain = () => {
   const [waterDrops, setWaterDrops] = useState<WaterDrop[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [showHint, setShowHint] = useState(false);
+  
+  // Pipe shop inventory
+  const [pipeInventory, setPipeInventory] = useState<Record<CellType, number>>({ ...DEFAULT_PIPE_INVENTORY });
+  const [shopMode, setShopMode] = useState(true); // Enable shop by default in sandbox
   
   // Hydrology features
   const [rainfallIntensity, setRainfallIntensity] = useState(1); // 1-5 drops per cloud
@@ -336,6 +363,7 @@ const BuildDrain = () => {
     setTotalReached(0);
     setOverflowCells([]);
     setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
+    setPipeInventory({ ...DEFAULT_PIPE_INVENTORY }); // Reset inventory
   };
 
   const backToMenu = () => {
@@ -356,11 +384,33 @@ const BuildDrain = () => {
     }
     
     if (selectedComponent) {
+      // Check inventory in sandbox mode with shop enabled
+      if (mode === "sandbox" && shopMode && pipeInventory[selectedComponent] <= 0) {
+        toast.error(`Out of ${allComponents.find(c => c.type === selectedComponent)?.label || selectedComponent}!`);
+        return;
+      }
+      
+      const oldType = grid[row][col].type;
+      
       setGrid(prev => {
         const newGrid = prev.map(r => r.map(c => ({ ...c })));
         newGrid[row][col].type = selectedComponent;
         return newGrid;
       });
+      
+      // Update inventory
+      if (mode === "sandbox" && shopMode) {
+        setPipeInventory(prev => {
+          const newInventory = { ...prev };
+          // Return old piece to inventory (if not empty)
+          if (oldType !== "empty") {
+            newInventory[oldType] = (newInventory[oldType] || 0) + 1;
+          }
+          // Use new piece
+          newInventory[selectedComponent] = Math.max(0, (newInventory[selectedComponent] || 0) - 1);
+          return newInventory;
+        });
+      }
     }
   };
 
@@ -369,11 +419,21 @@ const BuildDrain = () => {
     if (isSimulating) return;
     if (grid[row][col].locked) return;
     
+    const oldType = grid[row][col].type;
+    
     setGrid(prev => {
       const newGrid = prev.map(r => r.map(c => ({ ...c })));
       newGrid[row][col].type = "empty";
       return newGrid;
     });
+    
+    // Return piece to inventory
+    if (mode === "sandbox" && shopMode && oldType !== "empty") {
+      setPipeInventory(prev => ({
+        ...prev,
+        [oldType]: (prev[oldType] || 0) + 1,
+      }));
+    }
   };
 
   const resetGrid = () => {
@@ -389,6 +449,9 @@ const BuildDrain = () => {
     setTotalReached(0);
     setOverflowCells([]);
     setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
+    if (mode === "sandbox") {
+      setPipeInventory({ ...DEFAULT_PIPE_INVENTORY }); // Reset inventory on grid reset
+    }
   };
 
   const simulateWater = useCallback(() => {
@@ -1120,29 +1183,72 @@ const BuildDrain = () => {
                 </Card>
               )}
 
-              {/* Component Palette */}
+              {/* Pipe Shop / Component Palette */}
               <Card className="p-4">
-                <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
-                  🧱 Available Components
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-display font-semibold text-lg flex items-center gap-2">
+                    {mode === "sandbox" && shopMode ? (
+                      <>
+                        <ShoppingBag className="w-5 h-5 text-primary" />
+                        Pipe Shop
+                      </>
+                    ) : (
+                      <>🧱 Available Components</>
+                    )}
+                  </h3>
+                  {mode === "sandbox" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShopMode(!shopMode)}
+                      className="text-xs"
+                    >
+                      {shopMode ? "♾️ Unlimited" : "🛒 Limited"}
+                    </Button>
+                  )}
+                </div>
+                
+                {mode === "sandbox" && shopMode && (
+                  <p className="text-xs text-muted-foreground mb-3 p-2 bg-primary/5 rounded-lg">
+                    <Package className="w-3 h-3 inline mr-1" />
+                    Limited pipes! Plan carefully. Right-click to recycle.
+                  </p>
+                )}
+                
                 <div className="flex flex-wrap gap-2">
                   {availableComponents.map((comp) => {
                     const capacity = PIPE_CAPACITY[comp.type];
+                    const stock = pipeInventory[comp.type] ?? 0;
+                    const isOutOfStock = mode === "sandbox" && shopMode && stock <= 0;
+                    
                     return (
                       <button
                         key={comp.type}
                         onClick={() => setSelectedComponent(comp.type)}
-                        disabled={isSimulating}
+                        disabled={isSimulating || isOutOfStock}
                         className={`
-                          p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 min-w-[80px]
+                          p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 min-w-[80px] relative
                           ${selectedComponent === comp.type 
                             ? "border-primary bg-primary/10 ring-2 ring-primary/30" 
                             : "border-border hover:border-primary/50 hover:bg-primary/5"
                           }
                           ${isSimulating ? "opacity-50 cursor-not-allowed" : ""}
+                          ${isOutOfStock ? "opacity-40 cursor-not-allowed bg-muted" : ""}
                         `}
                       >
-                        <div className="text-primary">{comp.icon}</div>
+                        {/* Stock badge */}
+                        {mode === "sandbox" && shopMode && (
+                          <div className={`
+                            absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center
+                            ${stock <= 0 ? "bg-destructive text-destructive-foreground" : 
+                              stock <= 2 ? "bg-yellow-500 text-white" : 
+                              "bg-green-500 text-white"}
+                          `}>
+                            {stock}
+                          </div>
+                        )}
+                        
+                        <div className={`${isOutOfStock ? "text-muted-foreground" : "text-primary"}`}>{comp.icon}</div>
                         <span className="text-xs font-medium text-foreground">{comp.label}</span>
                         {capacity > 0 && capacity < 999 && (
                           <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
@@ -1154,7 +1260,7 @@ const BuildDrain = () => {
                   })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  💡 Right-click to remove • Pipes show capacity limits!
+                  💡 Right-click to remove{mode === "sandbox" && shopMode ? " (returns to stock)" : ""} • Pipes show capacity limits!
                 </p>
               </Card>
             </div>
