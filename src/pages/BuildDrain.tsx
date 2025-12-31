@@ -35,10 +35,15 @@ import {
   RotateCw,
   Lightbulb,
   Volume2,
-  VolumeX
+  VolumeX,
+  Timer,
+  Medal
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+
+// Best times storage key
+const BEST_TIMES_KEY = "buildDrain_bestTimes";
 
 // Achievement definitions
 interface Achievement {
@@ -719,6 +724,48 @@ const BuildDrain = () => {
   // Sound effects
   const [soundEnabled, setSoundEnabled] = useState(true);
   const { playWaterDrop, playPipePlace, playPipeRotate, playLevelComplete, playOverflow, playStart, playHint } = useSoundEffects();
+  
+  // Timer and scoring system
+  const [challengeStartTime, setChallengeStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [bestTimes, setBestTimes] = useState<Record<number, number>>(() => {
+    const stored = localStorage.getItem(BEST_TIMES_KEY);
+    return stored ? JSON.parse(stored) : {};
+  });
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Calculate star rating based on time (3 stars = under 30s, 2 stars = under 60s, 1 star = completed)
+  const getStarRating = (timeInSeconds: number, challengeId: number): number => {
+    const baseTimes = { easy: 30, medium: 45, hard: 60 };
+    const challenge = challenges.find(c => c.id === challengeId);
+    const baseTime = challenge ? baseTimes[challenge.difficulty] : 45;
+    
+    if (timeInSeconds <= baseTime) return 3;
+    if (timeInSeconds <= baseTime * 2) return 2;
+    return 1;
+  };
+  
+  // Timer effect
+  useEffect(() => {
+    if (mode === "challenge" && challengeStartTime && !score) {
+      timerIntervalRef.current = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - challengeStartTime) / 1000));
+      }, 1000);
+    }
+    
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [mode, challengeStartTime, score]);
+  
+  // Format time as mm:ss
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const availableComponents = currentChallenge 
     ? allComponents.filter(c => currentChallenge.availableComponents.includes(c.type))
@@ -748,6 +795,10 @@ const BuildDrain = () => {
     setTotalReached(0);
     setOverflowCells([]);
     setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
+    
+    // Start timer
+    setChallengeStartTime(Date.now());
+    setElapsedTime(0);
     
     // Set limited inventory if challenge has it
     if (challenge.limitedInventory) {
@@ -1180,6 +1231,19 @@ const BuildDrain = () => {
         if (percentage === 100) {
           // Play level complete sound
           if (soundEnabled) playLevelComplete();
+          
+          // Save best time
+          if (currentChallenge) {
+            const finalTime = challengeStartTime ? Math.floor((Date.now() - challengeStartTime) / 1000) : elapsedTime;
+            const currentBest = bestTimes[currentChallenge.id];
+            if (!currentBest || finalTime < currentBest) {
+              const newBestTimes = { ...bestTimes, [currentChallenge.id]: finalTime };
+              setBestTimes(newBestTimes);
+              localStorage.setItem(BEST_TIMES_KEY, JSON.stringify(newBestTimes));
+              toast.success(`🏆 New best time: ${formatTime(finalTime)}!`);
+            }
+          }
+          
           toast.success("🎉 Perfect! All water reached the reservoir!");
           if (currentChallenge && !completedChallenges.includes(currentChallenge.id)) {
             setCompletedChallenges(prev => [...prev, currentChallenge.id]);
@@ -1601,7 +1665,29 @@ const BuildDrain = () => {
                       {challenge.name}
                       {isCompleted && <span className="text-green-500">✓</span>}
                     </h3>
-                    <p className="text-sm text-muted-foreground">{challenge.description}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{challenge.description}</p>
+                    
+                    {/* Best time display on challenge card */}
+                    {bestTimes[challenge.id] && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-1 text-yellow-600">
+                          <Medal className="w-3 h-3" />
+                          <span>{formatTime(bestTimes[challenge.id])}</span>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3].map((star) => (
+                            <Star 
+                              key={star}
+                              className={`w-3 h-3 ${
+                                star <= getStarRating(bestTimes[challenge.id], challenge.id)
+                                  ? "text-yellow-500 fill-yellow-500"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
@@ -1652,6 +1738,20 @@ const BuildDrain = () => {
                 <p className="text-muted-foreground max-w-xl mx-auto mb-2">
                   {currentChallenge.description}
                 </p>
+                
+                {/* Live Timer Display */}
+                <div className="flex items-center justify-center gap-4 mb-2">
+                  <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
+                    <Timer className="w-4 h-4 text-primary" />
+                    <span className="font-mono font-bold text-primary">{formatTime(elapsedTime)}</span>
+                  </div>
+                  {bestTimes[currentChallenge.id] && (
+                    <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1.5 rounded-full text-sm">
+                      <Medal className="w-4 h-4 text-yellow-600" />
+                      <span className="text-yellow-700 dark:text-yellow-400">Best: {formatTime(bestTimes[currentChallenge.id])}</span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center justify-center gap-2 flex-wrap">
                   <Button 
                     variant="link" 
@@ -1950,6 +2050,35 @@ const BuildDrain = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     {score}% of water reached the reservoir
                   </p>
+                  
+                  {/* Time and Stars for completed challenges */}
+                  {score === 100 && currentChallenge && (
+                    <div className="mt-3 flex items-center justify-center gap-4">
+                      <div className="flex items-center gap-1 text-primary">
+                        <Timer className="w-4 h-4" />
+                        <span className="font-medium">{formatTime(elapsedTime)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3].map((star) => (
+                          <Star 
+                            key={star}
+                            className={`w-5 h-5 ${
+                              star <= getStarRating(elapsedTime, currentChallenge.id)
+                                ? "text-yellow-500 fill-yellow-500"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {bestTimes[currentChallenge.id] && (
+                        <div className="flex items-center gap-1 text-muted-foreground text-sm">
+                          <Medal className="w-4 h-4 text-yellow-600" />
+                          Best: {formatTime(bestTimes[currentChallenge.id])}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {score === 100 && currentChallenge && currentChallenge.id < challenges.length && (
                     <Button
                       className="mt-3"
