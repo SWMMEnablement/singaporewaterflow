@@ -113,6 +113,8 @@ interface Challenge {
   hint: string;
   initialGrid: Cell[][];
   availableComponents: CellType[];
+  limitedInventory?: Record<CellType, number>; // Optional limited pipes for resource challenges
+  solution?: Cell[][]; // Optional solution grid for "show answer"
 }
 
 // Pipe capacity limits - how many drops can pass through before overflow
@@ -158,6 +160,15 @@ const challenges: Challenge[] = [
       return grid;
     })(),
     availableComponents: ["pipe-vertical"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][2] = { type: "rain-cloud", locked: true };
+      grid[1][2] = { type: "drain-grate", locked: true };
+      grid[2][2] = { type: "pipe-vertical" };
+      grid[3][2] = { type: "pipe-vertical" };
+      grid[4][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
   },
   {
     id: 2,
@@ -173,6 +184,19 @@ const challenges: Challenge[] = [
       return grid;
     })(),
     availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[2][1] = { type: "pipe-vertical" };
+      grid[3][1] = { type: "pipe-vertical" };
+      grid[4][1] = { type: "pipe-corner-br" };
+      grid[4][2] = { type: "pipe-horizontal" };
+      grid[4][3] = { type: "pipe-horizontal" };
+      grid[4][4] = { type: "pipe-corner-bl" };
+      grid[5][4] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
   },
   {
     id: 3,
@@ -191,6 +215,21 @@ const challenges: Challenge[] = [
       return grid;
     })(),
     availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[2][0] = { type: "pipe-corner-br" };
+      grid[2][1] = { type: "pipe-horizontal" };
+      grid[2][2] = { type: "pipe-horizontal" };
+      grid[2][3] = { type: "pipe-corner-bl" };
+      grid[3][0] = { type: "locked", locked: true };
+      grid[3][1] = { type: "locked", locked: true };
+      grid[3][3] = { type: "pipe-vertical" };
+      grid[4][3] = { type: "pipe-corner-bl" };
+      grid[5][3] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
   },
   {
     id: 4,
@@ -208,6 +247,23 @@ const challenges: Challenge[] = [
       return grid;
     })(),
     availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][1] = { type: "rain-cloud", locked: true };
+      grid[0][4] = { type: "rain-cloud", locked: true };
+      grid[1][1] = { type: "drain-grate", locked: true };
+      grid[1][4] = { type: "drain-grate", locked: true };
+      grid[2][1] = { type: "pipe-corner-br" };
+      grid[2][2] = { type: "pipe-corner-bl" };
+      grid[2][4] = { type: "pipe-corner-bl" };
+      grid[3][2] = { type: "pipe-vertical" };
+      grid[3][4] = { type: "pipe-corner-bl" };
+      grid[4][2] = { type: "pipe-vertical" };
+      grid[4][3] = { type: "pipe-horizontal" };
+      grid[4][4] = { type: "pipe-corner-br" };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
   },
   {
     id: 5,
@@ -231,6 +287,26 @@ const challenges: Challenge[] = [
       return grid;
     })(),
     availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl"],
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[2][0] = { type: "pipe-vertical" };
+      grid[2][1] = { type: "locked", locked: true };
+      grid[2][2] = { type: "locked", locked: true };
+      grid[2][3] = { type: "locked", locked: true };
+      grid[3][0] = { type: "pipe-corner-br" };
+      grid[3][1] = { type: "pipe-horizontal" };
+      grid[3][2] = { type: "pipe-corner-bl" };
+      grid[3][3] = { type: "locked", locked: true };
+      grid[4][1] = { type: "locked", locked: true };
+      grid[4][2] = { type: "pipe-corner-br" };
+      grid[4][3] = { type: "locked", locked: true };
+      grid[4][4] = { type: "locked", locked: true };
+      grid[4][5] = { type: "pipe-corner-bl" };
+      grid[5][5] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
   },
   {
     id: 6,
@@ -254,6 +330,71 @@ const challenges: Challenge[] = [
       return grid;
     })(),
     availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl"],
+  },
+  {
+    id: 7,
+    name: "Resource Rush",
+    difficulty: "hard",
+    description: "Handle 3 rain clouds with LIMITED pipes! Use T-junctions wisely to merge flows.",
+    hint: "T-junctions can merge multiple water flows into one path - use them to save pipes!",
+    initialGrid: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[0][3] = { type: "rain-cloud", locked: true };
+      grid[0][5] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[1][3] = { type: "drain-grate", locked: true };
+      grid[1][5] = { type: "drain-grate", locked: true };
+      // Obstacles to make it interesting
+      grid[3][1] = { type: "locked", locked: true };
+      grid[3][4] = { type: "locked", locked: true };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
+    availableComponents: ["pipe-vertical", "pipe-horizontal", "pipe-corner-br", "pipe-corner-bl", "pipe-t-down", "pipe-t-up", "main-drain-vertical"],
+    limitedInventory: {
+      "empty": 999,
+      "rain-cloud": 0,
+      "drain-grate": 0,
+      "pipe-vertical": 4,
+      "pipe-horizontal": 3,
+      "pipe-corner-br": 2,
+      "pipe-corner-bl": 2,
+      "pipe-corner-tr": 0,
+      "pipe-corner-tl": 0,
+      "pipe-t-down": 1,
+      "pipe-t-up": 1,
+      "pipe-t-left": 0,
+      "pipe-t-right": 0,
+      "main-drain-vertical": 1,
+      "main-drain-horizontal": 0,
+      "reservoir": 0,
+      "locked": 0,
+    },
+    solution: (() => {
+      const grid = createEmptyGrid();
+      grid[0][0] = { type: "rain-cloud", locked: true };
+      grid[0][3] = { type: "rain-cloud", locked: true };
+      grid[0][5] = { type: "rain-cloud", locked: true };
+      grid[1][0] = { type: "drain-grate", locked: true };
+      grid[1][3] = { type: "drain-grate", locked: true };
+      grid[1][5] = { type: "drain-grate", locked: true };
+      grid[2][0] = { type: "pipe-corner-br" };
+      grid[2][1] = { type: "pipe-horizontal" };
+      grid[2][2] = { type: "pipe-t-up" };
+      grid[2][3] = { type: "pipe-corner-bl" };
+      grid[2][5] = { type: "pipe-corner-bl" };
+      grid[3][1] = { type: "locked", locked: true };
+      grid[3][2] = { type: "main-drain-vertical" };
+      grid[3][4] = { type: "locked", locked: true };
+      grid[3][5] = { type: "pipe-corner-br" };
+      grid[4][2] = { type: "pipe-t-down" };
+      grid[4][3] = { type: "pipe-horizontal" };
+      grid[4][4] = { type: "pipe-horizontal" };
+      grid[4][5] = { type: "pipe-corner-bl" };
+      grid[5][2] = { type: "reservoir", locked: true };
+      return grid;
+    })(),
   },
 ];
 
@@ -324,6 +465,9 @@ const BuildDrain = () => {
   const [earnedAchievements, setEarnedAchievements] = useState<string[]>([]);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
   const [hasSeenOverflowLesson, setHasSeenOverflowLesson] = useState(false);
+  
+  // Show answer feature
+  const [showingSolution, setShowingSolution] = useState(false);
 
   const availableComponents = currentChallenge 
     ? allComponents.filter(c => currentChallenge.availableComponents.includes(c.type))
@@ -346,11 +490,42 @@ const BuildDrain = () => {
     setScore(null);
     setWaterDrops([]);
     setShowHint(false);
+    setShowingSolution(false);
     setFlowRate(0);
     setTotalReached(0);
     setOverflowCells([]);
     setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
+    
+    // Set limited inventory if challenge has it
+    if (challenge.limitedInventory) {
+      setPipeInventory({ ...challenge.limitedInventory });
+      setShopMode(true);
+    } else {
+      setPipeInventory({ ...DEFAULT_PIPE_INVENTORY });
+      setShopMode(false);
+    }
+    
     toast.info(`Challenge: ${challenge.name}`);
+  };
+  
+  const showSolution = () => {
+    if (!currentChallenge?.solution) {
+      toast.error("No solution available for this challenge");
+      return;
+    }
+    setShowingSolution(true);
+    setGrid(currentChallenge.solution.map(row => row.map(cell => ({ ...cell, waterCount: 0 }))));
+    toast.info("Here's one way to solve it! Study it, then reset to try yourself.");
+  };
+  
+  const hideSolution = () => {
+    if (!currentChallenge) return;
+    setShowingSolution(false);
+    setGrid(currentChallenge.initialGrid.map(row => row.map(cell => ({ ...cell, waterCount: 0 }))));
+    if (currentChallenge.limitedInventory) {
+      setPipeInventory({ ...currentChallenge.limitedInventory });
+    }
+    toast.info("Grid reset - now try it yourself!");
   };
 
   const startSandbox = () => {
@@ -377,15 +552,17 @@ const BuildDrain = () => {
   };
 
   const handleCellClick = (row: number, col: number) => {
-    if (isSimulating) return;
+    if (isSimulating || showingSolution) return;
     if (grid[row][col].locked) {
       toast.error("This piece is locked!");
       return;
     }
     
+    const hasLimitedInventory = (mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory);
+    
     if (selectedComponent) {
-      // Check inventory in sandbox mode with shop enabled
-      if (mode === "sandbox" && shopMode && pipeInventory[selectedComponent] <= 0) {
+      // Check inventory when limited
+      if (hasLimitedInventory && pipeInventory[selectedComponent] <= 0) {
         toast.error(`Out of ${allComponents.find(c => c.type === selectedComponent)?.label || selectedComponent}!`);
         return;
       }
@@ -399,7 +576,7 @@ const BuildDrain = () => {
       });
       
       // Update inventory
-      if (mode === "sandbox" && shopMode) {
+      if (hasLimitedInventory) {
         setPipeInventory(prev => {
           const newInventory = { ...prev };
           // Return old piece to inventory (if not empty)
@@ -416,9 +593,10 @@ const BuildDrain = () => {
 
   const handleCellRightClick = (e: React.MouseEvent, row: number, col: number) => {
     e.preventDefault();
-    if (isSimulating) return;
+    if (isSimulating || showingSolution) return;
     if (grid[row][col].locked) return;
     
+    const hasLimitedInventory = (mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory);
     const oldType = grid[row][col].type;
     
     setGrid(prev => {
@@ -428,7 +606,7 @@ const BuildDrain = () => {
     });
     
     // Return piece to inventory
-    if (mode === "sandbox" && shopMode && oldType !== "empty") {
+    if (hasLimitedInventory && oldType !== "empty") {
       setPipeInventory(prev => ({
         ...prev,
         [oldType]: (prev[oldType] || 0) + 1,
@@ -1087,17 +1265,56 @@ const BuildDrain = () => {
                 <p className="text-muted-foreground max-w-xl mx-auto mb-2">
                   {currentChallenge.description}
                 </p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  onClick={() => setShowHint(!showHint)}
-                  className="text-primary"
-                >
-                  {showHint ? "Hide Hint" : "💡 Need a hint?"}
-                </Button>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    onClick={() => setShowHint(!showHint)}
+                    className="text-primary"
+                  >
+                    {showHint ? "Hide Hint" : "💡 Need a hint?"}
+                  </Button>
+                  
+                  {currentChallenge.solution && (
+                    <>
+                      {showingSolution ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={hideSolution}
+                          className="text-green-600 border-green-600 hover:bg-green-50"
+                        >
+                          ✏️ Try It Myself
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={showSolution}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          🔓 Show Answer
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+                
                 {showHint && (
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-lg inline-block mt-2">
                     {currentChallenge.hint}
+                  </p>
+                )}
+                
+                {showingSolution && (
+                  <p className="text-sm text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-4 py-2 rounded-lg inline-block mt-2">
+                    📚 Viewing solution - study it, then click "Try It Myself" to reset!
+                  </p>
+                )}
+                
+                {currentChallenge.limitedInventory && (
+                  <p className="text-sm text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-4 py-2 rounded-lg inline-block mt-2">
+                    ⚠️ Limited pipes! Check your inventory in the Pipe Shop below.
                   </p>
                 )}
               </>
@@ -1187,7 +1404,7 @@ const BuildDrain = () => {
               <Card className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-display font-semibold text-lg flex items-center gap-2">
-                    {mode === "sandbox" && shopMode ? (
+                    {(mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory) ? (
                       <>
                         <ShoppingBag className="w-5 h-5 text-primary" />
                         Pipe Shop
@@ -1208,7 +1425,7 @@ const BuildDrain = () => {
                   )}
                 </div>
                 
-                {mode === "sandbox" && shopMode && (
+                {((mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory)) && (
                   <p className="text-xs text-muted-foreground mb-3 p-2 bg-primary/5 rounded-lg">
                     <Package className="w-3 h-3 inline mr-1" />
                     Limited pipes! Plan carefully. Right-click to recycle.
@@ -1219,25 +1436,26 @@ const BuildDrain = () => {
                   {availableComponents.map((comp) => {
                     const capacity = PIPE_CAPACITY[comp.type];
                     const stock = pipeInventory[comp.type] ?? 0;
-                    const isOutOfStock = mode === "sandbox" && shopMode && stock <= 0;
+                    const hasLimitedInventory = (mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory);
+                    const isOutOfStock = hasLimitedInventory && stock <= 0;
                     
                     return (
                       <button
                         key={comp.type}
                         onClick={() => setSelectedComponent(comp.type)}
-                        disabled={isSimulating || isOutOfStock}
+                        disabled={isSimulating || isOutOfStock || showingSolution}
                         className={`
                           p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 min-w-[80px] relative
                           ${selectedComponent === comp.type 
                             ? "border-primary bg-primary/10 ring-2 ring-primary/30" 
                             : "border-border hover:border-primary/50 hover:bg-primary/5"
                           }
-                          ${isSimulating ? "opacity-50 cursor-not-allowed" : ""}
+                          ${isSimulating || showingSolution ? "opacity-50 cursor-not-allowed" : ""}
                           ${isOutOfStock ? "opacity-40 cursor-not-allowed bg-muted" : ""}
                         `}
                       >
                         {/* Stock badge */}
-                        {mode === "sandbox" && shopMode && (
+                        {hasLimitedInventory && (
                           <div className={`
                             absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center
                             ${stock <= 0 ? "bg-destructive text-destructive-foreground" : 
@@ -1260,7 +1478,7 @@ const BuildDrain = () => {
                   })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  💡 Right-click to remove{mode === "sandbox" && shopMode ? " (returns to stock)" : ""} • Pipes show capacity limits!
+                  💡 Right-click to remove{((mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory)) ? " (returns to stock)" : ""} • Pipes show capacity limits!
                 </p>
               </Card>
             </div>
