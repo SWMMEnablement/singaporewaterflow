@@ -33,9 +33,12 @@ import {
   ShoppingBag,
   Package,
   RotateCw,
-  Lightbulb
+  Lightbulb,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 // Achievement definitions
 interface Achievement {
@@ -712,6 +715,10 @@ const BuildDrain = () => {
   // Progressive hint system
   const [hintLevel, setHintLevel] = useState(0); // 0 = no hints, 1-3 = progressive reveals
   const [revealedHintCells, setRevealedHintCells] = useState<{row: number; col: number; type: CellType}[]>([]);
+  
+  // Sound effects
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const { playWaterDrop, playPipePlace, playPipeRotate, playLevelComplete, playOverflow, playStart, playHint } = useSoundEffects();
 
   const availableComponents = currentChallenge 
     ? allComponents.filter(c => currentChallenge.availableComponents.includes(c.type))
@@ -813,6 +820,9 @@ const BuildDrain = () => {
     setHintLevel(newHintLevel);
     setRevealedHintCells(prev => [...prev, nextHint]);
     
+    // Play hint sound
+    if (soundEnabled) playHint();
+    
     const remaining = unrevealed.length - 1;
     toast.info(`💡 Hint ${newHintLevel}: Place ${allComponents.find(c => c.type === nextHint.type)?.label || nextHint.type} at row ${nextHint.row + 1}, column ${nextHint.col + 1}! (${remaining} more hints available)`);
   };
@@ -868,6 +878,9 @@ const BuildDrain = () => {
         newGrid[row][col].type = selectedComponent;
         return newGrid;
       });
+      
+      // Play pipe placement sound
+      if (soundEnabled) playPipePlace();
       
       // Update inventory
       if (hasLimitedInventory) {
@@ -935,6 +948,8 @@ const BuildDrain = () => {
       return newGrid;
     });
     
+    // Play rotation sound
+    if (soundEnabled) playPipeRotate();
     toast.success(`Rotated to ${allComponents.find(c => c.type === rotatedType)?.label || rotatedType}!`);
   };
 
@@ -977,6 +992,9 @@ const BuildDrain = () => {
     setTotalReached(0);
     setOverflowCells([]);
     simulationStartTime.current = Date.now();
+    
+    // Play start sound
+    if (soundEnabled) playStart();
     
     // Reset pipe usage tracking
     const usageTracker = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0));
@@ -1043,6 +1061,8 @@ const BuildDrain = () => {
         if (nextCell.type === "reservoir") {
           reachedReservoir++;
           setTotalReached(reachedReservoir);
+          // Play water drop sound
+          if (soundEnabled) playWaterDrop();
           return;
         }
 
@@ -1059,6 +1079,8 @@ const BuildDrain = () => {
           if (!newOverflows.some(o => o.row === nextRow && o.col === nextCol)) {
             newOverflows.push({ row: nextRow, col: nextCol });
             setOverflowCells([...newOverflows]);
+            // Play overflow sound
+            if (soundEnabled) playOverflow();
           }
           // Drop is lost due to overflow
           return;
@@ -1156,6 +1178,8 @@ const BuildDrain = () => {
         }
         
         if (percentage === 100) {
+          // Play level complete sound
+          if (soundEnabled) playLevelComplete();
           toast.success("🎉 Perfect! All water reached the reservoir!");
           if (currentChallenge && !completedChallenges.includes(currentChallenge.id)) {
             setCompletedChallenges(prev => [...prev, currentChallenge.id]);
@@ -1169,7 +1193,7 @@ const BuildDrain = () => {
     };
 
     setTimeout(moveWater, stepDelay);
-  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson]);
+  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson, soundEnabled, playWaterDrop, playOverflow, playLevelComplete, playStart]);
 
   const renderCell = (cell: Cell, row: number, col: number) => {
     const hasWater = waterDrops.some(d => d.row === row && d.col === col);
@@ -1466,9 +1490,20 @@ const BuildDrain = () => {
         <main className="min-h-screen pt-20 pb-12 bg-gradient-to-b from-background to-secondary/20">
           <div className="container mx-auto px-4">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4">
-                <Droplets className="w-4 h-4" />
-                Interactive Activity
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+                  <Droplets className="w-4 h-4" />
+                  Interactive Activity
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  className="rounded-full"
+                  title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+                >
+                  {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                </Button>
               </div>
               <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-3">
                 Build Your Own Drain! 🏗️
