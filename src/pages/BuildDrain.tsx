@@ -31,7 +31,9 @@ import {
   BookOpen,
   X,
   ShoppingBag,
-  Package
+  Package,
+  RotateCw,
+  Lightbulb
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -139,6 +141,22 @@ const PIPE_CAPACITY: Record<CellType, number> = {
 };
 
 const GRID_SIZE = 6;
+
+// Pipe rotation mapping - what each pipe becomes when rotated clockwise
+const PIPE_ROTATION_MAP: Partial<Record<CellType, CellType>> = {
+  "pipe-vertical": "pipe-horizontal",
+  "pipe-horizontal": "pipe-vertical",
+  "pipe-corner-br": "pipe-corner-bl",
+  "pipe-corner-bl": "pipe-corner-tl",
+  "pipe-corner-tl": "pipe-corner-tr",
+  "pipe-corner-tr": "pipe-corner-br",
+  "pipe-t-down": "pipe-t-left",
+  "pipe-t-left": "pipe-t-up",
+  "pipe-t-up": "pipe-t-right",
+  "pipe-t-right": "pipe-t-down",
+  "main-drain-vertical": "main-drain-horizontal",
+  "main-drain-horizontal": "main-drain-vertical",
+};
 
 const createEmptyGrid = (): Cell[][] => 
   Array(GRID_SIZE).fill(null).map(() => 
@@ -690,6 +708,10 @@ const BuildDrain = () => {
   
   // Show answer feature
   const [showingSolution, setShowingSolution] = useState(false);
+  
+  // Progressive hint system
+  const [hintLevel, setHintLevel] = useState(0); // 0 = no hints, 1-3 = progressive reveals
+  const [revealedHintCells, setRevealedHintCells] = useState<{row: number; col: number; type: CellType}[]>([]);
 
   const availableComponents = currentChallenge 
     ? allComponents.filter(c => currentChallenge.availableComponents.includes(c.type))
@@ -713,6 +735,8 @@ const BuildDrain = () => {
     setWaterDrops([]);
     setShowHint(false);
     setShowingSolution(false);
+    setHintLevel(0);
+    setRevealedHintCells([]);
     setFlowRate(0);
     setTotalReached(0);
     setOverflowCells([]);
@@ -729,6 +753,7 @@ const BuildDrain = () => {
     
     toast.info(`Challenge: ${challenge.name}`);
   };
+  };
   
   const showSolution = () => {
     if (!currentChallenge?.solution) {
@@ -736,6 +761,8 @@ const BuildDrain = () => {
       return;
     }
     setShowingSolution(true);
+    setHintLevel(0);
+    setRevealedHintCells([]);
     setGrid(currentChallenge.solution.map(row => row.map(cell => ({ ...cell, waterCount: 0 }))));
     toast.info("Here's one way to solve it! Study it, then reset to try yourself.");
   };
@@ -743,11 +770,57 @@ const BuildDrain = () => {
   const hideSolution = () => {
     if (!currentChallenge) return;
     setShowingSolution(false);
+    setHintLevel(0);
+    setRevealedHintCells([]);
     setGrid(currentChallenge.initialGrid.map(row => row.map(cell => ({ ...cell, waterCount: 0 }))));
     if (currentChallenge.limitedInventory) {
       setPipeInventory({ ...currentChallenge.limitedInventory });
     }
     toast.info("Grid reset - now try it yourself!");
+  };
+  
+  // Progressive hint system - reveals solution cells gradually
+  const getNextHint = () => {
+    if (!currentChallenge?.solution) {
+      toast.error("No hints available for this challenge");
+      return;
+    }
+    
+    // Find all solution cells that are different from initial grid and not yet revealed
+    const solutionDiffs: {row: number; col: number; type: CellType}[] = [];
+    currentChallenge.solution.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        const initialCell = currentChallenge.initialGrid[rowIndex][colIndex];
+        if (cell.type !== initialCell.type && cell.type !== "empty" && !cell.locked) {
+          solutionDiffs.push({ row: rowIndex, col: colIndex, type: cell.type });
+        }
+      });
+    });
+    
+    // Filter out already revealed hints
+    const unrevealed = solutionDiffs.filter(diff => 
+      !revealedHintCells.some(h => h.row === diff.row && h.col === diff.col)
+    );
+    
+    if (unrevealed.length === 0) {
+      toast.info("All hints revealed! Try to complete the puzzle.");
+      return;
+    }
+    
+    // Reveal next hint (prioritize cells closer to rain clouds first)
+    const nextHint = unrevealed.sort((a, b) => a.row - b.row)[0];
+    const newHintLevel = hintLevel + 1;
+    
+    setHintLevel(newHintLevel);
+    setRevealedHintCells(prev => [...prev, nextHint]);
+    
+    const remaining = unrevealed.length - 1;
+    toast.info(`💡 Hint ${newHintLevel}: Place ${allComponents.find(c => c.type === nextHint.type)?.label || nextHint.type} at row ${nextHint.row + 1}, column ${nextHint.col + 1}! (${remaining} more hints available)`);
+  };
+  
+  const clearHints = () => {
+    setHintLevel(0);
+    setRevealedHintCells([]);
   };
 
   const startSandbox = () => {
@@ -834,6 +907,36 @@ const BuildDrain = () => {
         [oldType]: (prev[oldType] || 0) + 1,
       }));
     }
+  };
+
+  // Rotate pipe on middle-click or shift+click
+  const handleCellMiddleClick = (e: React.MouseEvent, row: number, col: number) => {
+    e.preventDefault();
+    if (isSimulating || showingSolution) return;
+    if (grid[row][col].locked) return;
+    
+    const currentType = grid[row][col].type;
+    if (currentType === "empty") return;
+    
+    const rotatedType = PIPE_ROTATION_MAP[currentType];
+    if (!rotatedType) {
+      toast.info("This piece can't be rotated");
+      return;
+    }
+    
+    // Check if rotated type is available in current challenge
+    if (currentChallenge && !currentChallenge.availableComponents.includes(rotatedType)) {
+      toast.error(`${allComponents.find(c => c.type === rotatedType)?.label} is not available in this challenge!`);
+      return;
+    }
+    
+    setGrid(prev => {
+      const newGrid = prev.map(r => r.map(c => ({ ...c })));
+      newGrid[row][col].type = rotatedType;
+      return newGrid;
+    });
+    
+    toast.success(`Rotated to ${allComponents.find(c => c.type === rotatedType)?.label || rotatedType}!`);
   };
 
   const resetGrid = () => {
@@ -1075,6 +1178,9 @@ const BuildDrain = () => {
     const capacity = PIPE_CAPACITY[cell.type];
     const isOverflowing = overflowCells.some(o => o.row === row && o.col === col);
     const usagePercent = capacity > 0 && capacity < 999 ? Math.min(100, (usage / capacity) * 100) : 0;
+    const isHintCell = revealedHintCells.some(h => h.row === row && h.col === col);
+    const hintData = revealedHintCells.find(h => h.row === row && h.col === col);
+    const canRotate = !cell.locked && cell.type !== "empty" && PIPE_ROTATION_MAP[cell.type] !== undefined;
     
     const cellContent = () => {
       switch (cell.type) {
@@ -1203,8 +1309,19 @@ const BuildDrain = () => {
     return (
       <div
         key={`${row}-${col}`}
-        onClick={() => handleCellClick(row, col)}
+        onClick={(e) => {
+          if (e.shiftKey && canRotate) {
+            handleCellMiddleClick(e, row, col);
+          } else {
+            handleCellClick(row, col);
+          }
+        }}
         onContextMenu={(e) => handleCellRightClick(e, row, col)}
+        onAuxClick={(e) => {
+          if (e.button === 1) {
+            handleCellMiddleClick(e, row, col);
+          }
+        }}
         className={`
           w-14 h-14 sm:w-16 sm:h-16 border-2 border-dashed border-border/50 rounded-lg
           flex items-center justify-center cursor-pointer transition-all relative
@@ -1212,12 +1329,26 @@ const BuildDrain = () => {
           ${cell.locked ? "cursor-not-allowed" : ""}
           ${selectedComponent && cell.type === "empty" && !cell.locked ? "ring-2 ring-primary/30" : ""}
           ${isOverflowing ? "ring-2 ring-destructive animate-pulse" : ""}
+          ${isHintCell && cell.type === "empty" ? "ring-2 ring-yellow-500 bg-yellow-500/20 animate-pulse" : ""}
         `}
+        title={canRotate ? "Shift+Click or Middle-Click to rotate" : undefined}
       >
         {cellContent()}
         {isOverflowing && (
           <div className="absolute -top-1 -right-1 bg-destructive rounded-full p-0.5">
             <AlertTriangle className="w-3 h-3 text-destructive-foreground" />
+          </div>
+        )}
+        {isHintCell && cell.type === "empty" && hintData && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-yellow-600 text-xs font-bold bg-yellow-100 dark:bg-yellow-900/50 px-1 rounded">
+              {allComponents.find(c => c.type === hintData.type)?.label?.split(' ')[0] || '?'}
+            </div>
+          </div>
+        )}
+        {canRotate && !isSimulating && !showingSolution && (
+          <div className="absolute -bottom-1 -right-1 bg-primary/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <RotateCw className="w-2.5 h-2.5 text-primary-foreground" />
           </div>
         )}
       </div>
@@ -1497,28 +1628,49 @@ const BuildDrain = () => {
                     {showHint ? "Hide Hint" : "💡 Need a hint?"}
                   </Button>
                   
-                  {currentChallenge.solution && (
+                  {currentChallenge.solution && !showingSolution && (
                     <>
-                      {showingSolution ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={hideSolution}
-                          className="text-green-600 border-green-600 hover:bg-green-50"
-                        >
-                          ✏️ Try It Myself
-                        </Button>
-                      ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={getNextHint}
+                        className="text-yellow-600 border-yellow-500 hover:bg-yellow-50 gap-1"
+                      >
+                        <Lightbulb className="w-4 h-4" />
+                        {hintLevel === 0 ? "Get Hint" : `Next Hint (${hintLevel} used)`}
+                      </Button>
+                      
+                      {hintLevel > 0 && (
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={showSolution}
+                          onClick={clearHints}
                           className="text-muted-foreground hover:text-foreground"
                         >
-                          🔓 Show Answer
+                          Clear Hints
                         </Button>
                       )}
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={showSolution}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        🔓 Show Full Answer
+                      </Button>
                     </>
+                  )}
+                  
+                  {showingSolution && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={hideSolution}
+                      className="text-green-600 border-green-600 hover:bg-green-50"
+                    >
+                      ✏️ Try It Myself
+                    </Button>
                   )}
                 </div>
                 
@@ -1526,6 +1678,21 @@ const BuildDrain = () => {
                   <p className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 px-4 py-2 rounded-lg inline-block mt-2">
                     {currentChallenge.hint}
                   </p>
+                )}
+                
+                {revealedHintCells.length > 0 && !showingSolution && (
+                  <div className="mt-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg max-w-md mx-auto">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 font-medium mb-2">
+                      💡 Progressive Hints ({revealedHintCells.length} revealed):
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {revealedHintCells.map((hint, idx) => (
+                        <span key={idx} className="text-xs bg-yellow-200 dark:bg-yellow-800 px-2 py-1 rounded">
+                          {allComponents.find(c => c.type === hint.type)?.label} → Row {hint.row + 1}, Col {hint.col + 1}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 
                 {showingSolution && (
@@ -1700,7 +1867,7 @@ const BuildDrain = () => {
                   })}
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  💡 Right-click to remove{((mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory)) ? " (returns to stock)" : ""} • Pipes show capacity limits!
+                  💡 Right-click to remove{((mode === "sandbox" && shopMode) || (mode === "challenge" && currentChallenge?.limitedInventory)) ? " (returns to stock)" : ""} • <span className="text-primary font-medium">Shift+Click or Middle-Click to rotate</span> • Pipes show capacity limits!
                 </p>
               </Card>
             </div>
