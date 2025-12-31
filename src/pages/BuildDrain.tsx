@@ -1,7 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import { 
   Droplets, 
   Play, 
@@ -15,7 +16,10 @@ import {
   Star,
   Lock,
   ChevronLeft,
-  Sparkles
+  Sparkles,
+  Gauge,
+  AlertTriangle,
+  Zap
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,6 +28,7 @@ type CellType = "empty" | "pipe-vertical" | "pipe-horizontal" | "pipe-corner-br"
 interface Cell {
   type: CellType;
   locked?: boolean;
+  waterCount?: number; // Track how many drops have passed through
 }
 
 interface WaterDrop {
@@ -43,11 +48,26 @@ interface Challenge {
   availableComponents: CellType[];
 }
 
+// Pipe capacity limits - how many drops can pass through before overflow
+const PIPE_CAPACITY: Record<CellType, number> = {
+  "empty": 0,
+  "pipe-vertical": 3,
+  "pipe-horizontal": 3,
+  "pipe-corner-br": 2,
+  "pipe-corner-bl": 2,
+  "pipe-corner-tr": 2,
+  "pipe-corner-tl": 2,
+  "drain-grate": 5,
+  "reservoir": 999,
+  "rain-cloud": 999,
+  "locked": 0,
+};
+
 const GRID_SIZE = 6;
 
 const createEmptyGrid = (): Cell[][] => 
   Array(GRID_SIZE).fill(null).map(() => 
-    Array(GRID_SIZE).fill(null).map(() => ({ type: "empty" as CellType }))
+    Array(GRID_SIZE).fill(null).map(() => ({ type: "empty" as CellType, waterCount: 0 }))
   );
 
 const challenges: Challenge[] = [
@@ -184,18 +204,42 @@ const BuildDrain = () => {
   const [waterDrops, setWaterDrops] = useState<WaterDrop[]>([]);
   const [score, setScore] = useState<number | null>(null);
   const [showHint, setShowHint] = useState(false);
+  
+  // Hydrology features
+  const [rainfallIntensity, setRainfallIntensity] = useState(1); // 1-5 drops per cloud
+  const [flowRate, setFlowRate] = useState(0); // drops per second reaching reservoir
+  const [totalReached, setTotalReached] = useState(0);
+  const [overflowCells, setOverflowCells] = useState<{row: number; col: number}[]>([]);
+  const [pipeUsage, setPipeUsage] = useState<number[][]>(
+    Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0))
+  );
+  const simulationStartTime = useRef<number>(0);
 
   const availableComponents = currentChallenge 
     ? allComponents.filter(c => currentChallenge.availableComponents.includes(c.type))
     : allComponents;
 
+  // Calculate flow rate during simulation
+  useEffect(() => {
+    if (isSimulating && simulationStartTime.current > 0) {
+      const elapsed = (Date.now() - simulationStartTime.current) / 1000;
+      if (elapsed > 0) {
+        setFlowRate(Math.round((totalReached / elapsed) * 10) / 10);
+      }
+    }
+  }, [totalReached, isSimulating]);
+
   const startChallenge = (challenge: Challenge) => {
     setCurrentChallenge(challenge);
-    setGrid(challenge.initialGrid.map(row => row.map(cell => ({ ...cell }))));
+    setGrid(challenge.initialGrid.map(row => row.map(cell => ({ ...cell, waterCount: 0 }))));
     setMode("challenge");
     setScore(null);
     setWaterDrops([]);
     setShowHint(false);
+    setFlowRate(0);
+    setTotalReached(0);
+    setOverflowCells([]);
+    setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
     toast.info(`Challenge: ${challenge.name}`);
   };
 
@@ -205,6 +249,10 @@ const BuildDrain = () => {
     setMode("sandbox");
     setScore(null);
     setWaterDrops([]);
+    setFlowRate(0);
+    setTotalReached(0);
+    setOverflowCells([]);
+    setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
   };
 
   const backToMenu = () => {
@@ -212,6 +260,9 @@ const BuildDrain = () => {
     setCurrentChallenge(null);
     setScore(null);
     setWaterDrops([]);
+    setFlowRate(0);
+    setTotalReached(0);
+    setOverflowCells([]);
   };
 
   const handleCellClick = (row: number, col: number) => {
@@ -244,13 +295,17 @@ const BuildDrain = () => {
 
   const resetGrid = () => {
     if (currentChallenge) {
-      setGrid(currentChallenge.initialGrid.map(row => row.map(cell => ({ ...cell }))));
+      setGrid(currentChallenge.initialGrid.map(row => row.map(cell => ({ ...cell, waterCount: 0 }))));
     } else {
       setGrid(createEmptyGrid());
     }
     setWaterDrops([]);
     setIsSimulating(false);
     setScore(null);
+    setFlowRate(0);
+    setTotalReached(0);
+    setOverflowCells([]);
+    setPipeUsage(Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0)));
   };
 
   const simulateWater = useCallback(() => {
@@ -270,20 +325,52 @@ const BuildDrain = () => {
 
     setIsSimulating(true);
     setScore(null);
+    setFlowRate(0);
+    setTotalReached(0);
+    setOverflowCells([]);
+    simulationStartTime.current = Date.now();
+    
+    // Reset pipe usage tracking
+    const usageTracker = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0));
+    setPipeUsage(usageTracker);
 
-    const initialDrops: WaterDrop[] = rainClouds.map((cloud, index) => ({
-      id: index,
-      row: cloud.row,
-      col: cloud.col,
-      direction: "down" as const,
-    }));
+    // Create multiple drops per cloud based on rainfall intensity
+    const initialDrops: WaterDrop[] = [];
+    let dropId = 0;
+    rainClouds.forEach((cloud) => {
+      for (let i = 0; i < rainfallIntensity; i++) {
+        initialDrops.push({
+          id: dropId++,
+          row: cloud.row,
+          col: cloud.col,
+          direction: "down" as const,
+        });
+      }
+    });
 
-    setWaterDrops(initialDrops);
-
-    let currentDrops = [...initialDrops];
+    // Stagger drops based on intensity (higher = faster spawning)
+    const dropDelay = Math.max(100, 400 - (rainfallIntensity * 50));
+    const stepDelay = Math.max(200, 500 - (rainfallIntensity * 50));
+    
+    let currentDrops: WaterDrop[] = [];
+    let pendingDrops = [...initialDrops];
     let reachedReservoir = 0;
     let steps = 0;
-    const maxSteps = 20;
+    const maxSteps = 30;
+    const newOverflows: {row: number; col: number}[] = [];
+
+    const spawnNextDrop = () => {
+      if (pendingDrops.length > 0) {
+        currentDrops.push(pendingDrops.shift()!);
+        setWaterDrops([...currentDrops]);
+        if (pendingDrops.length > 0) {
+          setTimeout(spawnNextDrop, dropDelay);
+        }
+      }
+    };
+
+    // Start spawning drops
+    spawnNextDrop();
 
     const moveWater = () => {
       steps++;
@@ -307,10 +394,25 @@ const BuildDrain = () => {
 
         if (nextCell.type === "reservoir") {
           reachedReservoir++;
+          setTotalReached(reachedReservoir);
           return;
         }
 
         if (nextCell.type === "empty" || nextCell.type === "rain-cloud" || nextCell.type === "locked") {
+          return;
+        }
+
+        // Track pipe usage and check for overflow
+        usageTracker[nextRow][nextCol]++;
+        setPipeUsage([...usageTracker.map(row => [...row])]);
+        
+        const capacity = PIPE_CAPACITY[nextCell.type];
+        if (usageTracker[nextRow][nextCol] > capacity && capacity < 999) {
+          if (!newOverflows.some(o => o.row === nextRow && o.col === nextCol)) {
+            newOverflows.push({ row: nextRow, col: nextCol });
+            setOverflowCells([...newOverflows]);
+          }
+          // Drop is lost due to overflow
           return;
         }
 
@@ -339,15 +441,19 @@ const BuildDrain = () => {
       });
 
       currentDrops = newDrops;
-      setWaterDrops([...newDrops]);
+      setWaterDrops([...currentDrops, ...pendingDrops.map((d, i) => ({ ...d, id: d.id }))]);
 
-      if (newDrops.length > 0 && steps < maxSteps) {
-        setTimeout(moveWater, 500);
+      if ((currentDrops.length > 0 || pendingDrops.length > 0) && steps < maxSteps) {
+        setTimeout(moveWater, stepDelay);
       } else {
         setIsSimulating(false);
-        const totalClouds = rainClouds.length;
-        const percentage = Math.round((reachedReservoir / totalClouds) * 100);
+        const totalDrops = rainClouds.length * rainfallIntensity;
+        const percentage = Math.round((reachedReservoir / totalDrops) * 100);
         setScore(percentage);
+        
+        if (newOverflows.length > 0) {
+          toast.warning(`⚠️ ${newOverflows.length} pipe(s) overflowed! Try larger pipes or fewer drops.`);
+        }
         
         if (percentage === 100) {
           toast.success("🎉 Perfect! All water reached the reservoir!");
@@ -355,18 +461,22 @@ const BuildDrain = () => {
             setCompletedChallenges(prev => [...prev, currentChallenge.id]);
           }
         } else if (percentage > 0) {
-          toast.info(`${reachedReservoir}/${totalClouds} water drops reached the reservoir!`);
+          toast.info(`${reachedReservoir}/${totalDrops} water drops reached the reservoir!`);
         } else {
           toast.error("No water reached the reservoir. Try again!");
         }
       }
     };
 
-    setTimeout(moveWater, 500);
-  }, [grid, currentChallenge, completedChallenges]);
+    setTimeout(moveWater, stepDelay);
+  }, [grid, currentChallenge, completedChallenges, rainfallIntensity]);
 
   const renderCell = (cell: Cell, row: number, col: number) => {
     const hasWater = waterDrops.some(d => d.row === row && d.col === col);
+    const usage = pipeUsage[row][col];
+    const capacity = PIPE_CAPACITY[cell.type];
+    const isOverflowing = overflowCells.some(o => o.row === row && o.col === col);
+    const usagePercent = capacity > 0 && capacity < 999 ? Math.min(100, (usage / capacity) * 100) : 0;
     
     const cellContent = () => {
       switch (cell.type) {
@@ -374,39 +484,54 @@ const BuildDrain = () => {
           return <CloudRain className={`w-8 h-8 ${hasWater ? "text-primary animate-bounce" : "text-muted-foreground"}`} />;
         case "drain-grate":
           return (
-            <div className={`w-10 h-10 grid grid-cols-3 gap-0.5 ${hasWater ? "bg-primary/30" : "bg-muted"} rounded p-1`}>
+            <div className={`w-10 h-10 grid grid-cols-3 gap-0.5 ${hasWater ? "bg-primary/30" : "bg-muted"} rounded p-1 relative`}>
               {[...Array(9)].map((_, i) => (
                 <div key={i} className="bg-foreground/30 rounded-sm" />
               ))}
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
             </div>
           );
         case "pipe-vertical":
           return (
             <div className={`w-4 h-full ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-full relative overflow-hidden`}>
               {hasWater && <div className="absolute inset-0 bg-primary animate-pulse" />}
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
             </div>
           );
         case "pipe-horizontal":
           return (
             <div className={`h-4 w-full ${hasWater ? "bg-primary" : "bg-muted-foreground/50"} rounded-full relative overflow-hidden`}>
               {hasWater && <div className="absolute inset-0 bg-primary animate-pulse" />}
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
             </div>
           );
         case "pipe-corner-br":
           return (
-            <div className={`w-full h-full border-b-4 border-r-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-br-2xl`} />
+            <div className="relative w-full h-full">
+              <div className={`w-full h-full border-b-4 border-r-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-br-2xl`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
           );
         case "pipe-corner-bl":
           return (
-            <div className={`w-full h-full border-b-4 border-l-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-bl-2xl`} />
+            <div className="relative w-full h-full">
+              <div className={`w-full h-full border-b-4 border-l-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-bl-2xl`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
           );
         case "pipe-corner-tr":
           return (
-            <div className={`w-full h-full border-t-4 border-r-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-tr-2xl`} />
+            <div className="relative w-full h-full">
+              <div className={`w-full h-full border-t-4 border-r-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-tr-2xl`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
           );
         case "pipe-corner-tl":
           return (
-            <div className={`w-full h-full border-t-4 border-l-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-tl-2xl`} />
+            <div className="relative w-full h-full">
+              <div className={`w-full h-full border-t-4 border-l-4 ${hasWater ? "border-primary" : "border-muted-foreground/50"} rounded-tl-2xl`} />
+              {usage > 0 && <CapacityIndicator usage={usage} capacity={capacity} />}
+            </div>
           );
         case "reservoir":
           return (
@@ -432,13 +557,34 @@ const BuildDrain = () => {
         onContextMenu={(e) => handleCellRightClick(e, row, col)}
         className={`
           w-14 h-14 sm:w-16 sm:h-16 border-2 border-dashed border-border/50 rounded-lg
-          flex items-center justify-center cursor-pointer transition-all
+          flex items-center justify-center cursor-pointer transition-all relative
           ${cell.type === "empty" ? "hover:bg-primary/10 hover:border-primary/50" : "bg-card"}
           ${cell.locked ? "cursor-not-allowed" : ""}
           ${selectedComponent && cell.type === "empty" && !cell.locked ? "ring-2 ring-primary/30" : ""}
+          ${isOverflowing ? "ring-2 ring-destructive animate-pulse" : ""}
         `}
       >
         {cellContent()}
+        {isOverflowing && (
+          <div className="absolute -top-1 -right-1 bg-destructive rounded-full p-0.5">
+            <AlertTriangle className="w-3 h-3 text-destructive-foreground" />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Capacity indicator component
+  const CapacityIndicator = ({ usage, capacity }: { usage: number; capacity: number }) => {
+    const percent = Math.min(100, (usage / capacity) * 100);
+    const color = percent >= 100 ? "bg-destructive" : percent >= 66 ? "bg-yellow-500" : "bg-green-500";
+    
+    return (
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/50 rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${color} transition-all duration-300`}
+          style={{ width: `${percent}%` }}
+        />
       </div>
     );
   };
@@ -599,35 +745,111 @@ const BuildDrain = () => {
           </div>
 
           <div className="grid lg:grid-cols-[1fr_auto] gap-6 max-w-5xl mx-auto">
-            {/* Component Palette */}
-            <Card className="p-4 order-2 lg:order-1">
-              <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
-                🧱 Available Components
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {availableComponents.map((comp) => (
-                  <button
-                    key={comp.type}
-                    onClick={() => setSelectedComponent(comp.type)}
+            {/* Component Palette & Hydrology Controls */}
+            <div className="space-y-4 order-2 lg:order-1">
+              {/* Rainfall Intensity Control */}
+              <Card className="p-4">
+                <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+                  <CloudRain className="w-5 h-5 text-primary" />
+                  Storm Intensity
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Rainfall Level:</span>
+                    <span className="font-bold text-primary">
+                      {rainfallIntensity === 1 ? "🌧️ Light" : 
+                       rainfallIntensity === 2 ? "🌧️🌧️ Moderate" :
+                       rainfallIntensity === 3 ? "⛈️ Heavy" :
+                       rainfallIntensity === 4 ? "⛈️⛈️ Very Heavy" :
+                       "🌊 Extreme Storm!"}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[rainfallIntensity]}
+                    onValueChange={(value) => setRainfallIntensity(value[0])}
+                    min={1}
+                    max={5}
+                    step={1}
                     disabled={isSimulating}
-                    className={`
-                      p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 min-w-[80px]
-                      ${selectedComponent === comp.type 
-                        ? "border-primary bg-primary/10 ring-2 ring-primary/30" 
-                        : "border-border hover:border-primary/50 hover:bg-primary/5"
-                      }
-                      ${isSimulating ? "opacity-50 cursor-not-allowed" : ""}
-                    `}
-                  >
-                    <div className="text-primary">{comp.icon}</div>
-                    <span className="text-xs font-medium text-foreground">{comp.label}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                💡 Right-click to remove a piece!
-              </p>
-            </Card>
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {rainfallIntensity} drop{rainfallIntensity > 1 ? "s" : ""} per cloud • 
+                    {rainfallIntensity <= 2 ? " Easy to handle" : 
+                     rainfallIntensity <= 3 ? " Needs good drainage" :
+                     " Risk of overflow!"}
+                  </p>
+                </div>
+              </Card>
+
+              {/* Flow Rate Display */}
+              {(isSimulating || score !== null) && (
+                <Card className="p-4 bg-gradient-to-r from-primary/5 to-primary/10">
+                  <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+                    <Gauge className="w-5 h-5 text-primary" />
+                    Hydrology Dashboard
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-background/50 rounded-lg">
+                      <div className="text-2xl font-bold text-primary">{flowRate}</div>
+                      <div className="text-xs text-muted-foreground">drops/sec</div>
+                      <div className="text-xs font-medium mt-1">Flow Rate</div>
+                    </div>
+                    <div className="text-center p-3 bg-background/50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{totalReached}</div>
+                      <div className="text-xs text-muted-foreground">total</div>
+                      <div className="text-xs font-medium mt-1">Collected</div>
+                    </div>
+                  </div>
+                  {overflowCells.length > 0 && (
+                    <div className="mt-3 p-2 bg-destructive/10 rounded-lg flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-destructive" />
+                      <span className="text-xs text-destructive font-medium">
+                        {overflowCells.length} overflow{overflowCells.length > 1 ? "s" : ""} detected!
+                      </span>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Component Palette */}
+              <Card className="p-4">
+                <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+                  🧱 Available Components
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {availableComponents.map((comp) => {
+                    const capacity = PIPE_CAPACITY[comp.type];
+                    return (
+                      <button
+                        key={comp.type}
+                        onClick={() => setSelectedComponent(comp.type)}
+                        disabled={isSimulating}
+                        className={`
+                          p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 min-w-[80px]
+                          ${selectedComponent === comp.type 
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/30" 
+                            : "border-border hover:border-primary/50 hover:bg-primary/5"
+                          }
+                          ${isSimulating ? "opacity-50 cursor-not-allowed" : ""}
+                        `}
+                      >
+                        <div className="text-primary">{comp.icon}</div>
+                        <span className="text-xs font-medium text-foreground">{comp.label}</span>
+                        {capacity > 0 && capacity < 999 && (
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Zap className="w-2.5 h-2.5" /> {capacity} max
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  💡 Right-click to remove • Pipes show capacity limits!
+                </p>
+              </Card>
+            </div>
 
             {/* Grid */}
             <div className="order-1 lg:order-2">
