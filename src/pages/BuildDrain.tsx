@@ -753,7 +753,6 @@ const BuildDrain = () => {
     
     toast.info(`Challenge: ${challenge.name}`);
   };
-  };
   
   const showSolution = () => {
     if (!currentChallenge?.solution) {
