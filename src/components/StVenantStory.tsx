@@ -1,4 +1,5 @@
 import { FunFact } from "./FunFact";
+import { TechnicalAnnotation } from "./TechnicalAnnotation";
 import { User, Calendar, MapPin, BookOpen } from "lucide-react";
 
 export const StVenantStory = () => {
@@ -52,6 +53,15 @@ export const StVenantStory = () => {
                     <span>Engineer & Mathematician</span>
                   </div>
                 </div>
+
+                <TechnicalAnnotation title="Academic Background">
+                  <p>
+                    Saint-Venant was educated at the École Polytechnique and later became a member of 
+                    the French Academy of Sciences. His 1871 paper "Théorie du mouvement non permanent 
+                    des eaux" introduced the shallow water equations. He also made significant 
+                    contributions to elasticity theory (Saint-Venant's principle) and torsion analysis.
+                  </p>
+                </TechnicalAnnotation>
               </div>
             </div>
           </div>
@@ -81,6 +91,13 @@ export const StVenantStory = () => {
                 He studied really hard and became a famous engineer. In 1871, 
                 he wrote his famous equations about how water flows in rivers and channels!
               </p>
+              <TechnicalAnnotation title="Historical Context">
+                <p>
+                  The St. Venant equations were derived before computers existed. Engineers solved 
+                  them using graphical methods and simplified approximations until numerical methods 
+                  became practical in the 1960s-70s.
+                </p>
+              </TechnicalAnnotation>
             </div>
           </div>
 

@@ -28,6 +28,17 @@ const Index = () => {
           <SingaporeSection />
         </div>
         <QuizSection />
+        <div className="py-12 bg-gradient-to-r from-primary/10 to-accent/10">
+          <div className="container mx-auto px-6 text-center">
+            <h3 className="font-display text-2xl font-bold mb-4">🌧️ Ready for the Ultimate Challenge?</h3>
+            <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+              Use everything you've learned to save Singapore from a monsoon storm!
+            </p>
+            <a href="/storm-challenge" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-full font-bold hover:bg-primary/90 transition-colors">
+              Play Storm Challenge 🎮
+            </a>
+          </div>
+        </div>
         <Footer />
       </main>
     </>
