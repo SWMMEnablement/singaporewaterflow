@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CheckCircle2, XCircle, Trophy, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TechnicalAnnotation } from "./TechnicalAnnotation";
 
 interface Question {
   id: number;
@@ -9,6 +10,8 @@ interface Question {
   correctAnswer: number;
   explanation: string;
   emoji: string;
+  wrongAnswerFeedback: Record<number, string>;
+  technicalNote?: string;
 }
 
 const quizQuestions: Question[] = [
@@ -19,6 +22,12 @@ const quizQuestions: Question[] = [
     correctAnswer: 1,
     explanation: "St. Venant was a French engineer and mathematician who lived from 1797 to 1886!",
     emoji: "🇫🇷",
+    wrongAnswerFeedback: {
+      0: "Good guess! England has had many famous scientists, but St. Venant was from France. He helped engineers all over the world, including in England!",
+      2: "Close! Germany also has many brilliant engineers, but St. Venant was French. His equations are used by German engineers too!",
+      3: "Good thinking! Singapore uses his work a lot, but St. Venant was actually from France. He figured out the math that engineers in Singapore and everywhere use today!",
+    },
+    technicalNote: "Adhémar Jean Claude Barré de Saint-Venant (1797-1886) derived the shallow water equations in 1871, which describe unsteady open-channel flow and are still fundamental to hydraulic engineering.",
   },
   {
     id: 2,
@@ -27,6 +36,12 @@ const quizQuestions: Question[] = [
     correctAnswer: 1,
     explanation: "St. Venant's equations tell us exactly how water moves through rivers, channels, and drains!",
     emoji: "🌊",
+    wrongAnswerFeedback: {
+      0: "Birds are amazing! But that's aerodynamics. St. Venant focused on water - specifically how it flows through rivers, pipes, and drains. Both are about fluid movement though!",
+      2: "Plants need water to grow, but St. Venant's equations are about how water itself moves - how fast, how deep, and in what direction!",
+      3: "Stars are fascinating, but that's astronomy! St. Venant studied something closer to Earth - how water flows in rivers and channels.",
+    },
+    technicalNote: "The St. Venant equations (also called shallow water equations) are a set of hyperbolic partial differential equations: the continuity equation (∂A/∂t + ∂Q/∂x = 0) and the momentum equation (∂Q/∂t + ∂(Q²/A)/∂x + gA∂h/∂x = gA(S₀ - Sƒ)).",
   },
   {
     id: 3,
@@ -40,6 +55,12 @@ const quizQuestions: Question[] = [
     correctAnswer: 1,
     explanation: "SWMM stands for Storm Water Management Model - it's a computer program that uses St. Venant's equations!",
     emoji: "💻",
+    wrongAnswerFeedback: {
+      0: "That would be a fun name! But SWMM actually stands for 'Storm Water Management Model' - it's a computer program that helps engineers design drains and predict flooding.",
+      2: "The math isn't that simple, unfortunately! SWMM is 'Storm Water Management Model' - a sophisticated computer simulation used by engineers worldwide.",
+      3: "Singapore does use SWMM a lot, but it wasn't made just for Singapore! SWMM stands for 'Storm Water Management Model' and was created by the US Environmental Protection Agency.",
+    },
+    technicalNote: "SWMM (Storm Water Management Model) was developed by the US EPA in 1971. It uses numerical solutions to the St. Venant equations (dynamic wave routing) along with kinematic wave and other simplified routing methods.",
   },
   {
     id: 4,
@@ -53,6 +74,12 @@ const quizQuestions: Question[] = [
     correctAnswer: 1,
     explanation: "Singapore is near the equator and gets about 2,400mm of rain every year - that's A LOT of water!",
     emoji: "🌧️",
+    wrongAnswerFeedback: {
+      0: "Actually, it rains a lot in Singapore! Being in the tropics near the equator means heavy monsoon rains - that's exactly why they need excellent drainage!",
+      2: "Singapore is definitely not a desert! It's a tropical island with lots of rain - about 2,400mm per year. Compare that to London's 600mm!",
+      3: "Singapore is tropical, not cold! It's hot and rainy year-round. That's why their drainage engineers are some of the best in the world!",
+    },
+    technicalNote: "Singapore receives approximately 2,400mm of annual rainfall with peak intensities often exceeding 100mm/hour during monsoons. PUB (Public Utilities Board) manages over 8,000km of drains and canals, designing for 1-in-50 year storm events.",
   },
   {
     id: 5,
@@ -66,6 +93,12 @@ const quizQuestions: Question[] = [
     correctAnswer: 2,
     explanation: "Water can't soak into concrete, so it runs off into drains - this is called stormwater!",
     emoji: "🏙️",
+    wrongAnswerFeedback: {
+      0: "Water never really disappears - it's always going somewhere! In cities, rain runs off roads and roofs into storm drains because it can't soak into concrete.",
+      1: "Concrete and asphalt are impermeable - water can't soak through them like it does into soil. That's why cities need lots of drains to collect all the runoff!",
+      3: "Ha! Gravity pulls water down, not up! But you're right that water goes somewhere - it flows along surfaces into storm drains.",
+    },
+    technicalNote: "Urban areas have high runoff coefficients (0.7-0.95) due to impervious surfaces. The rational method (Q = CiA) estimates peak runoff where C is the runoff coefficient, i is rainfall intensity, and A is catchment area.",
   },
   {
     id: 6,
@@ -79,6 +112,12 @@ const quizQuestions: Question[] = [
     correctAnswer: 1,
     explanation: "The Continuity Equation says water can't just vanish - if it goes in one end, it comes out somewhere!",
     emoji: "📏",
+    wrongAnswerFeedback: {
+      0: "The opposite, actually! The Continuity Equation says water is conserved - it can't just vanish. Every drop that enters a system must come out somewhere.",
+      2: "Water flows downhill due to gravity! The Continuity Equation is about conservation - making sure we account for all the water going in and out of a system.",
+      3: "Haha, wouldn't that be sweet! But rain is just water. The Continuity Equation says all water is accounted for - none appears or disappears magically.",
+    },
+    technicalNote: "The continuity equation (∂A/∂t + ∂Q/∂x = 0) expresses conservation of mass for incompressible flow. In integral form: ∫∫ρv·dA = 0, where changes in cross-sectional area over time equal changes in discharge over distance.",
   },
 ];
 
@@ -132,6 +171,17 @@ export const QuizSection = () => {
   const question = quizQuestions[currentQuestion];
   const isCorrect = selectedAnswer === question.correctAnswer;
   const percentage = Math.round((score / quizQuestions.length) * 100);
+
+  // Get the feedback message for wrong answers
+  const getFeedbackMessage = () => {
+    if (isCorrect) {
+      return question.explanation;
+    }
+    if (selectedAnswer !== null && question.wrongAnswerFeedback[selectedAnswer]) {
+      return question.wrongAnswerFeedback[selectedAnswer];
+    }
+    return question.explanation;
+  };
 
   if (quizComplete) {
     return (
@@ -256,13 +306,18 @@ export const QuizSection = () => {
               })}
             </div>
 
-            {/* Result Explanation */}
+            {/* Result Explanation - Enhanced with rich feedback */}
             {showResult && (
               <div className={`p-4 rounded-2xl mb-6 ${isCorrect ? "bg-accent/20" : "bg-secondary/20"}`}>
                 <p className="font-display font-bold mb-2">
-                  {isCorrect ? "🎉 Correct!" : "💡 Not quite!"}
+                  {isCorrect ? "🎉 Correct!" : "💡 Not quite, but great thinking!"}
                 </p>
-                <p className="text-muted-foreground">{question.explanation}</p>
+                <p className="text-muted-foreground">{getFeedbackMessage()}</p>
+                
+                {/* Technical annotation for grown-ups */}
+                <TechnicalAnnotation title="Engineering Details">
+                  <p>{question.technicalNote}</p>
+                </TechnicalAnnotation>
               </div>
             )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Droplets, Menu, X, BookOpen, Palette, Hammer } from "lucide-react";
+import { GrownUpToggle } from "./GrownUpToggle";
 
 interface NavItem {
   label: string;
@@ -17,7 +18,6 @@ const navItems: NavItem[] = [
   { label: "Singapore", href: "/#singapore" },
   { label: "Quiz", href: "/#quiz" },
   { label: "Glossary", href: "/glossary", isPage: true, icon: <BookOpen className="w-4 h-4" /> },
-  { label: "Coloring", href: "/coloring", isPage: true, icon: <Palette className="w-4 h-4" /> },
   { label: "Build Drain", href: "/build-drain", isPage: true, icon: <Hammer className="w-4 h-4" /> },
 ];
 
@@ -108,6 +108,9 @@ export const Navbar = () => {
                 {item.label}
               </button>
             ))}
+            <div className="ml-2">
+              <GrownUpToggle />
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -142,6 +145,10 @@ export const Navbar = () => {
                   {item.label}
                 </button>
               ))}
+              <div className="px-4 pt-2 border-t border-border mt-2">
+                <span className="text-xs text-muted-foreground mb-2 block">Mode:</span>
+                <GrownUpToggle />
+              </div>
             </div>
           </div>
         )}
