@@ -127,8 +127,14 @@ interface Challenge {
   solution?: Cell[][]; // Optional solution grid for "show answer"
 }
 
+// Pipe properties - slope affects flow speed, roughness affects capacity
+interface PipePhysics {
+  baseCapacity: number;
+  baseFlowSpeed: number; // Base steps per simulation tick
+}
+
 // Pipe capacity limits - how many drops can pass through before overflow
-const PIPE_CAPACITY: Record<CellType, number> = {
+const PIPE_BASE_CAPACITY: Record<CellType, number> = {
   "empty": 0,
   "pipe-vertical": 3,
   "pipe-horizontal": 3,
@@ -147,6 +153,9 @@ const PIPE_CAPACITY: Record<CellType, number> = {
   "rain-cloud": 999,
   "locked": 0,
 };
+
+// Keep PIPE_CAPACITY for backwards compatibility - will be dynamically calculated
+const PIPE_CAPACITY = PIPE_BASE_CAPACITY;
 
 const GRID_SIZE = 6;
 
@@ -708,6 +717,28 @@ const BuildDrain = () => {
   );
   const simulationStartTime = useRef<number>(0);
   
+  // NEW: Slope and roughness controls for physics-based flow
+  const [pipeSlope, setPipeSlope] = useState(0.02); // S₀ - 0.5% to 10%
+  const [pipeRoughness, setPipeRoughness] = useState(0.015); // n - Manning's coefficient
+  
+  // Calculate flow speed multiplier based on Manning's equation principles
+  // Higher slope = faster flow, lower roughness = faster flow
+  const flowSpeedMultiplier = useCallback(() => {
+    // Simplified Manning's: v ∝ S^0.5 / n
+    // Normalize to give multiplier between 0.5x and 3x
+    const slopeEffect = Math.pow(pipeSlope / 0.02, 0.5); // 1.0 at 2% slope
+    const roughnessEffect = 0.015 / pipeRoughness; // 1.0 at 0.015
+    return Math.max(0.5, Math.min(3, slopeEffect * roughnessEffect));
+  }, [pipeSlope, pipeRoughness]);
+  
+  // Calculate dynamic capacity based on roughness (smoother = more capacity)
+  const getDynamicCapacity = useCallback((cellType: CellType) => {
+    const baseCapacity = PIPE_BASE_CAPACITY[cellType];
+    // Rougher pipes have slightly lower effective capacity
+    const roughnessMultiplier = Math.max(0.7, 0.015 / pipeRoughness);
+    return Math.round(baseCapacity * roughnessMultiplier);
+  }, [pipeRoughness]);
+  
   // Learning popup and achievements
   const [showLearningPopup, setShowLearningPopup] = useState(false);
   const [earnedAchievements, setEarnedAchievements] = useState<string[]>([]);
@@ -1066,8 +1097,10 @@ const BuildDrain = () => {
     });
 
     // Stagger drops based on intensity (higher = faster spawning)
-    const dropDelay = Math.max(100, 400 - (rainfallIntensity * 50));
-    const stepDelay = Math.max(200, 500 - (rainfallIntensity * 50));
+    // Apply flow speed multiplier from Manning's equation (slope/roughness)
+    const speedMult = flowSpeedMultiplier();
+    const dropDelay = Math.max(50, Math.round((400 - (rainfallIntensity * 50)) / speedMult));
+    const stepDelay = Math.max(100, Math.round((500 - (rainfallIntensity * 50)) / speedMult));
     
     let currentDrops: WaterDrop[] = [];
     let pendingDrops = [...initialDrops];
@@ -1257,12 +1290,12 @@ const BuildDrain = () => {
     };
 
     setTimeout(moveWater, stepDelay);
-  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson, soundEnabled, playWaterDrop, playOverflow, playLevelComplete, playStart]);
+  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson, soundEnabled, playWaterDrop, playOverflow, playLevelComplete, playStart, flowSpeedMultiplier, bestTimes, challengeStartTime, elapsedTime]);
 
   const renderCell = (cell: Cell, row: number, col: number) => {
     const hasWater = waterDrops.some(d => d.row === row && d.col === col);
     const usage = pipeUsage[row][col];
-    const capacity = PIPE_CAPACITY[cell.type];
+    const capacity = getDynamicCapacity(cell.type);
     const isOverflowing = overflowCells.some(o => o.row === row && o.col === col);
     const usagePercent = capacity > 0 && capacity < 999 ? Math.min(100, (usage / capacity) * 100) : 0;
     const isHintCell = revealedHintCells.some(h => h.row === row && h.col === col);
@@ -1890,6 +1923,85 @@ const BuildDrain = () => {
                      rainfallIntensity <= 3 ? " Needs good drainage" :
                      " Risk of overflow!"}
                   </p>
+                </div>
+              </Card>
+              
+              {/* NEW: Pipe Physics Controls */}
+              <Card className="p-4">
+                <h3 className="font-display font-semibold text-lg mb-3 flex items-center gap-2">
+                  <Gauge className="w-5 h-5 text-primary" />
+                  Pipe Physics
+                </h3>
+                <div className="space-y-4">
+                  {/* Slope Control */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Pipe Slope:</span>
+                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                        {(pipeSlope * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[pipeSlope * 100]}
+                      onValueChange={(value) => setPipeSlope(value[0] / 100)}
+                      min={0.5}
+                      max={10}
+                      step={0.5}
+                      disabled={isSimulating}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {pipeSlope < 0.02 ? "🐌 Gentle - water moves slowly" :
+                       pipeSlope < 0.05 ? "🚶 Normal - standard flow" :
+                       "🏃 Steep - water rushes fast!"}
+                    </p>
+                  </div>
+                  
+                  {/* Roughness Control */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Pipe Roughness:</span>
+                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                        n = {pipeRoughness.toFixed(3)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[pipeRoughness * 1000]}
+                      onValueChange={(value) => setPipeRoughness(value[0] / 1000)}
+                      min={10}
+                      max={35}
+                      step={1}
+                      disabled={isSimulating}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {pipeRoughness <= 0.012 ? "✨ Super smooth - fastest flow" :
+                       pipeRoughness <= 0.018 ? "🏗️ Smooth concrete - good flow" :
+                       pipeRoughness <= 0.025 ? "🪨 Rough - slower flow" :
+                       "🌿 Very rough - much slower!"}
+                    </p>
+                  </div>
+                  
+                  {/* Flow Speed Indicator */}
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">Flow Speed:</span>
+                      <span className={`font-bold ${
+                        flowSpeedMultiplier() >= 2 ? "text-accent" :
+                        flowSpeedMultiplier() >= 1 ? "text-primary" :
+                        "text-muted-foreground"
+                      }`}>
+                        {flowSpeedMultiplier().toFixed(1)}x
+                        {flowSpeedMultiplier() >= 2 ? " 🚀" :
+                         flowSpeedMultiplier() >= 1.2 ? " 🏃" :
+                         flowSpeedMultiplier() >= 0.8 ? " 🚶" :
+                         " 🐢"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Based on Manning's equation: steeper + smoother = faster!
+                    </p>
+                  </div>
                 </div>
               </Card>
 
