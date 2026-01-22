@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { TutorialOverlay, useTutorialState, getTutorialData } from "@/components/TutorialOverlay";
 import { CompletionCertificate } from "@/components/CompletionCertificate";
+import { DroppyMascot, useDroppy } from "@/components/DroppyMascot";
 
 // Best times storage key
 const BEST_TIMES_KEY = "buildDrain_bestTimes";
@@ -785,6 +786,9 @@ const BuildDrain = () => {
   // Certificate modal
   const [showCertificate, setShowCertificate] = useState(false);
   
+  // Droppy mascot state
+  const { trigger: droppyTrigger, customMessage: droppyMessage, showMessage: showDroppyMessage } = useDroppy();
+  
   // Calculate star rating based on time (3 stars = under 30s, 2 stars = under 60s, 1 star = completed)
   const getStarRating = (timeInSeconds: number, challengeId: number): number => {
     const baseTimes = { easy: 30, medium: 45, hard: 60 };
@@ -866,6 +870,9 @@ const BuildDrain = () => {
       startTutorial();
     }
     
+    // Trigger Droppy for challenge start
+    showDroppyMessage("start");
+    
     toast.info(`Challenge: ${challenge.name}`);
   };
   
@@ -931,6 +938,9 @@ const BuildDrain = () => {
     // Play hint sound
     if (soundEnabled) playHint();
     
+    // Trigger Droppy for hint
+    showDroppyMessage("hint");
+    
     const remaining = unrevealed.length - 1;
     toast.info(`💡 Hint ${newHintLevel}: Place ${allComponents.find(c => c.type === nextHint.type)?.label || nextHint.type} at row ${nextHint.row + 1}, column ${nextHint.col + 1}! (${remaining} more hints available)`);
   };
@@ -989,6 +999,9 @@ const BuildDrain = () => {
       
       // Play pipe placement sound
       if (soundEnabled) playPipePlace();
+      
+      // Trigger Droppy for pipe placement (occasionally to avoid spam)
+      if (Math.random() > 0.6) showDroppyMessage("place");
       
       // Update inventory
       if (hasLimitedInventory) {
@@ -1286,6 +1299,7 @@ const BuildDrain = () => {
           if (!earnedAchievements.includes(achievement.id) && achievement.condition(stats)) {
             setEarnedAchievements(prev => [...prev, achievement.id]);
             setNewAchievement(achievement);
+            showDroppyMessage("achievement");
             toast.success(`🏆 Achievement Unlocked: ${achievement.name}!`);
           }
         });
@@ -1294,13 +1308,22 @@ const BuildDrain = () => {
         if (newOverflows.length > 0 && !hasSeenOverflowLesson) {
           setShowLearningPopup(true);
           setHasSeenOverflowLesson(true);
+          showDroppyMessage("overflow");
         } else if (newOverflows.length > 0) {
           toast.warning(`⚠️ ${newOverflows.length} pipe(s) overflowed! Try larger pipes or fewer drops.`);
+          showDroppyMessage("overflow");
         }
         
         if (percentage === 100) {
           // Play level complete sound
           if (soundEnabled) playLevelComplete();
+          
+          // Trigger Droppy celebration
+          if (newOverflows.length === 0) {
+            showDroppyMessage("perfect");
+          } else {
+            showDroppyMessage("success");
+          }
           
           // Save best time
           if (currentChallenge) {
@@ -1320,14 +1343,16 @@ const BuildDrain = () => {
           }
         } else if (percentage > 0) {
           toast.info(`${reachedReservoir}/${totalDrops} water drops reached the reservoir!`);
+          showDroppyMessage("fail");
         } else {
           toast.error("No water reached the reservoir. Try again!");
+          showDroppyMessage("fail");
         }
       }
     };
 
     setTimeout(moveWater, stepDelay);
-  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson, soundEnabled, playWaterDrop, playOverflow, playLevelComplete, playStart, flowSpeedMultiplier, bestTimes, challengeStartTime, elapsedTime]);
+  }, [grid, currentChallenge, completedChallenges, rainfallIntensity, earnedAchievements, hasSeenOverflowLesson, soundEnabled, playWaterDrop, playOverflow, playLevelComplete, playStart, flowSpeedMultiplier, bestTimes, challengeStartTime, elapsedTime, showDroppyMessage]);
 
   const renderCell = (cell: Cell, row: number, col: number) => {
     const hasWater = waterDrops.some(d => d.row === row && d.col === col);
@@ -1639,6 +1664,11 @@ const BuildDrain = () => {
                   {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </Button>
               </div>
+              {/* Droppy welcome in menu */}
+              <div className="flex justify-center mb-4">
+                <DroppyMascot trigger="idle" className="scale-110" />
+              </div>
+              
               <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-3">
                 Build Your Own Drain! 🏗️
               </h1>
@@ -2177,17 +2207,25 @@ const BuildDrain = () => {
 
             {/* Grid */}
             <div className="order-1 lg:order-2">
-              <Card className="p-4 inline-block">
-                <div 
-                  ref={gridRef}
-                  className="grid gap-1" 
-                  style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
-                >
-                  {grid.map((row, rowIndex) =>
-                    row.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))
-                  )}
-                </div>
-              </Card>
+              {/* Droppy Mascot - positioned next to grid */}
+              <div className="flex items-start gap-4 mb-4">
+                <DroppyMascot 
+                  trigger={droppyTrigger} 
+                  customMessage={droppyMessage}
+                  className="hidden sm:flex flex-shrink-0"
+                />
+                <Card className="p-4 inline-block">
+                  <div 
+                    ref={gridRef}
+                    className="grid gap-1" 
+                    style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
+                  >
+                    {grid.map((row, rowIndex) =>
+                      row.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))
+                    )}
+                  </div>
+                </Card>
+              </div>
 
               {/* Controls */}
               <div className="flex flex-wrap gap-3 mt-4 justify-center">
