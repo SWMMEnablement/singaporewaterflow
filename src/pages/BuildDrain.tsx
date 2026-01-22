@@ -37,10 +37,13 @@ import {
   Volume2,
   VolumeX,
   Timer,
-  Medal
+  Medal,
+  GraduationCap
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { TutorialOverlay, useTutorialState, getTutorialData } from "@/components/TutorialOverlay";
+import { CompletionCertificate } from "@/components/CompletionCertificate";
 
 // Best times storage key
 const BEST_TIMES_KEY = "buildDrain_bestTimes";
@@ -765,6 +768,23 @@ const BuildDrain = () => {
   });
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Tutorial system
+  const {
+    tutorialActive,
+    tutorialStep,
+    startTutorial,
+    skipTutorial,
+    completeTutorial,
+    nextStep: nextTutorialStep,
+    shouldShowTutorial,
+    resetTutorialStep,
+  } = useTutorialState();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const CELL_SIZE = 64; // Approximate cell size for tutorial positioning
+  
+  // Certificate modal
+  const [showCertificate, setShowCertificate] = useState(false);
+  
   // Calculate star rating based on time (3 stars = under 30s, 2 stars = under 60s, 1 star = completed)
   const getStarRating = (timeInSeconds: number, challengeId: number): number => {
     const baseTimes = { easy: 30, medium: 45, hard: 60 };
@@ -838,6 +858,12 @@ const BuildDrain = () => {
     } else {
       setPipeInventory({ ...DEFAULT_PIPE_INVENTORY });
       setShopMode(false);
+    }
+    
+    // Start tutorial for first 3 challenges if not completed
+    if (shouldShowTutorial(challenge.id)) {
+      resetTutorialStep();
+      startTutorial();
     }
     
     toast.info(`Challenge: ${challenge.name}`);
@@ -976,6 +1002,17 @@ const BuildDrain = () => {
           newInventory[selectedComponent] = Math.max(0, (newInventory[selectedComponent] || 0) - 1);
           return newInventory;
         });
+      }
+      
+      // Advance tutorial if active
+      if (tutorialActive && currentChallenge) {
+        const tutorialData = getTutorialData(currentChallenge.id);
+        if (tutorialData) {
+          const currentStep = tutorialData.steps[tutorialStep];
+          if (currentStep && currentStep.targetRow === row && currentStep.targetCol === col) {
+            nextTutorialStep();
+          }
+        }
       }
     }
   };
@@ -1737,9 +1774,29 @@ const BuildDrain = () => {
                   style={{ width: `${(completedChallenges.length / challenges.length) * 100}%` }}
                 />
               </div>
+              
+              {/* Certificate button - shown when all challenges completed */}
+              {completedChallenges.length === challenges.length && (
+                <Button 
+                  onClick={() => setShowCertificate(true)}
+                  className="mt-6 gap-2 animate-pulse"
+                  size="lg"
+                >
+                  <GraduationCap className="w-5 h-5" />
+                  Get Your Certificate! 🎓
+                </Button>
+              )}
             </div>
           </div>
         </main>
+        
+        {/* Certificate Modal */}
+        <CompletionCertificate
+          isOpen={showCertificate}
+          onClose={() => setShowCertificate(false)}
+          totalChallenges={challenges.length}
+          bestTimes={bestTimes}
+        />
       </>
     );
   }
@@ -2121,7 +2178,11 @@ const BuildDrain = () => {
             {/* Grid */}
             <div className="order-1 lg:order-2">
               <Card className="p-4 inline-block">
-                <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}>
+                <div 
+                  ref={gridRef}
+                  className="grid gap-1" 
+                  style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
+                >
                   {grid.map((row, rowIndex) =>
                     row.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))
                   )}
@@ -2205,6 +2266,19 @@ const BuildDrain = () => {
           </div>
         </div>
       </main>
+      
+      {/* Tutorial Overlay */}
+      {tutorialActive && currentChallenge && (
+        <TutorialOverlay
+          challengeId={currentChallenge.id}
+          currentStep={tutorialStep}
+          onNextStep={nextTutorialStep}
+          onSkipTutorial={() => skipTutorial(currentChallenge.id)}
+          onCompleteTutorial={() => completeTutorial(currentChallenge.id)}
+          gridRef={gridRef}
+          cellSize={CELL_SIZE}
+        />
+      )}
     </>
   );
 };
