@@ -1,4 +1,5 @@
-import { Droplets, Heart, Linkedin } from "lucide-react";
+import { Droplets, Heart, Linkedin, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
@@ -15,6 +16,16 @@ export const Footer = () => {
             Making water science fun for curious minds! Remember: even the biggest 
             floods can be managed with smart math! 💧🧮
           </p>
+          
+          {/* Parent/Teacher Corner Link */}
+          <Link
+            to="/parents-guide"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm mb-6 group"
+          >
+            <GraduationCap className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span>Parent & Teacher Corner</span>
+            <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">For Adults</span>
+          </Link>
           
           {/* Author credit with LinkedIn */}
           <div className="flex flex-col items-center gap-3 mb-6">
