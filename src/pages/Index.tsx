@@ -8,6 +8,7 @@ import { SingaporeSection } from "@/components/SingaporeSection";
 import { QuizSection } from "@/components/QuizSection";
 import { Footer } from "@/components/Footer";
 import { SlopeSimulator } from "@/components/SlopeSimulator";
+import { RoughnessSimulator } from "@/components/RoughnessSimulator";
 
 const Index = () => {
   return (
@@ -20,19 +21,42 @@ const Index = () => {
           <EquationExplainer />
         </div>
         
-        {/* Interactive Slope Simulator Section */}
-        <section id="slope-simulator" className="py-16 bg-gradient-to-b from-background to-secondary/20">
+        {/* Interactive Simulators Section */}
+        <section id="simulators" className="py-16 bg-gradient-to-b from-background to-secondary/20">
           <div className="container mx-auto px-6">
-            <div className="text-center mb-8">
+            <div className="text-center mb-12">
               <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
                 🎮 Try It Yourself!
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Drag the pipe to make it steeper or flatter, and watch how the water speed changes. 
-                This is how engineers design drains in real life!
+                Use these interactive tools to see how engineers think about water flow. 
+                Change the settings and watch what happens!
               </p>
             </div>
-            <SlopeSimulator className="max-w-3xl mx-auto" />
+            
+            <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+              {/* Slope Simulator */}
+              <div id="slope-simulator">
+                <h3 className="font-display text-xl font-bold text-foreground mb-4 text-center">
+                  ⛷️ The Slope Slider
+                </h3>
+                <p className="text-sm text-muted-foreground text-center mb-4">
+                  Drag the pipe to make it steeper—watch water speed up!
+                </p>
+                <SlopeSimulator />
+              </div>
+              
+              {/* Roughness Simulator */}
+              <div id="roughness-simulator">
+                <h3 className="font-display text-xl font-bold text-foreground mb-4 text-center">
+                  🌿 The Bumpy Surface
+                </h3>
+                <p className="text-sm text-muted-foreground text-center mb-4">
+                  Pick different ground types and see how they slow water down!
+                </p>
+                <RoughnessSimulator />
+              </div>
+            </div>
           </div>
         </section>
         
