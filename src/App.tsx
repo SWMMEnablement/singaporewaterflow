@@ -9,6 +9,7 @@ import Glossary from "./pages/Glossary";
 import ColoringPage from "./pages/ColoringPage";
 import BuildDrain from "./pages/BuildDrain";
 import StormChallenge from "./pages/StormChallenge";
+import DubaiChallenge from "./pages/DubaiChallenge";
 import ParentsGuide from "./pages/ParentsGuide";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/coloring" element={<ColoringPage />} />
             <Route path="/build-drain" element={<BuildDrain />} />
             <Route path="/storm-challenge" element={<StormChallenge />} />
+            <Route path="/dubai-challenge" element={<DubaiChallenge />} />
             <Route path="/parents-guide" element={<ParentsGuide />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
