@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { TechnicalAnnotation } from "@/components/TechnicalAnnotation";
-import { Gauge, Droplets, Mountain, Waves, Info, GripHorizontal } from "lucide-react";
+import { Gauge, Droplets, Mountain, Waves, Info, GripHorizontal, Circle, Volume2, VolumeX } from "lucide-react";
 
 interface SlopeSimulatorProps {
   className?: string;
@@ -12,7 +12,14 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
   // Physical parameters
   const [slope, setSlope] = useState(0.02); // S₀ - dimensionless (0.5% to 10%)
   const [roughness, setRoughness] = useState(0.015); // n - Manning's coefficient
-  const [pipeRadius, setPipeRadius] = useState(0.5); // meters
+  const [pipeRadius, setPipeRadius] = useState(0.5); // meters (now adjustable!)
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  // Audio context for water rushing sound
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const noiseNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const filterNodeRef = useRef<BiquadFilterNode | null>(null);
   
   // Dragging state for slope
   const [isDragging, setIsDragging] = useState(false);
@@ -36,7 +43,105 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
     return { flowRate, velocity, area, hydraulicRadius };
   }, [slope, roughness, pipeRadius]);
   
-  const { flowRate, velocity, hydraulicRadius } = calculateFlow();
+  const { flowRate, velocity, area, hydraulicRadius } = calculateFlow();
+  
+  // Create water rushing sound based on velocity
+  const createWaterSound = useCallback(() => {
+    if (!soundEnabled) return;
+    
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    
+    const ctx = audioContextRef.current;
+    
+    // Create noise buffer for water rushing sound
+    const bufferSize = 2 * ctx.sampleRate;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    
+    // Generate pink-ish noise for water sound
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.7616 * b5 - white * 0.0168980;
+      output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+      b6 = white * 0.115926;
+    }
+    
+    // Stop previous sound
+    if (noiseNodeRef.current) {
+      try {
+        noiseNodeRef.current.stop();
+      } catch (e) {}
+    }
+    
+    // Create new nodes
+    const noiseNode = ctx.createBufferSource();
+    noiseNode.buffer = noiseBuffer;
+    noiseNode.loop = true;
+    
+    const gainNode = ctx.createGain();
+    const filterNode = ctx.createBiquadFilter();
+    
+    // Filter for water-like sound
+    filterNode.type = "lowpass";
+    
+    // Connect: noise -> filter -> gain -> output
+    noiseNode.connect(filterNode);
+    filterNode.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    noiseNodeRef.current = noiseNode;
+    gainNodeRef.current = gainNode;
+    filterNodeRef.current = filterNode;
+    
+    noiseNode.start();
+  }, [soundEnabled]);
+  
+  // Update sound based on velocity
+  useEffect(() => {
+    if (!soundEnabled) {
+      if (noiseNodeRef.current) {
+        try {
+          noiseNodeRef.current.stop();
+        } catch (e) {}
+        noiseNodeRef.current = null;
+      }
+      return;
+    }
+    
+    if (!noiseNodeRef.current) {
+      createWaterSound();
+    }
+    
+    if (gainNodeRef.current && filterNodeRef.current) {
+      // Map velocity to volume (0-4 m/s -> 0-0.15 volume)
+      const normalizedVelocity = Math.min(velocity / 4, 1);
+      const volume = normalizedVelocity * 0.15;
+      gainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current!.currentTime, 0.1);
+      
+      // Map velocity to filter frequency (faster = higher pitch, more "rushing")
+      const filterFreq = 300 + normalizedVelocity * 2000;
+      filterNodeRef.current.frequency.setTargetAtTime(filterFreq, audioContextRef.current!.currentTime, 0.1);
+    }
+  }, [velocity, soundEnabled, createWaterSound]);
+  
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (noiseNodeRef.current) {
+        try {
+          noiseNodeRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
   
   // Handle mouse/touch drag for slope adjustment
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -119,17 +224,41 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
   
   const flowDesc = getFlowDesc(velocity);
   
+  // Get diameter description for kids
+  const getDiameterDesc = (r: number) => {
+    const diameter = r * 2 * 100; // cm
+    if (diameter <= 50) return { text: "Small Pipe", emoji: "🔸", desc: "Like a garden hose" };
+    if (diameter <= 100) return { text: "Medium Pipe", emoji: "🔶", desc: "Like a home drain" };
+    if (diameter <= 150) return { text: "Large Pipe", emoji: "🟠", desc: "Like a street drain" };
+    return { text: "Giant Pipe!", emoji: "🔴", desc: "Like a main sewer!" };
+  };
+  
+  const diameterInfo = getDiameterDesc(pipeRadius);
+  
   return (
     <Card className={`p-6 ${className}`}>
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h3 className="font-display text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-            <Gauge className="w-6 h-6 text-primary" />
-            Pipe Slope Simulator
-          </h3>
+          <div className="flex items-center justify-center gap-2">
+            <h3 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
+              <Gauge className="w-6 h-6 text-primary" />
+              Pipe Slope Simulator
+            </h3>
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className="p-2 rounded-full hover:bg-muted transition-colors"
+              title={soundEnabled ? "Mute water sound" : "Enable water sound"}
+            >
+              {soundEnabled ? (
+                <Volume2 className="w-5 h-5 text-primary" />
+              ) : (
+                <VolumeX className="w-5 h-5 text-muted-foreground" />
+              )}
+            </button>
+          </div>
           <p className="text-muted-foreground mt-1">
-            Drag the pipe to change the slope and see how fast water flows!
+            Drag the pipe to change the slope and hear the water rushing! 🔊
           </p>
         </div>
         
@@ -218,7 +347,7 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
         </div>
         
         {/* Controls */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           {/* Slope Control */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -268,10 +397,34 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
               {roughnessInfo.emoji} {roughnessInfo.text} - {roughnessInfo.desc}
             </p>
           </div>
+          
+          {/* NEW: Pipe Diameter Control */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="font-medium flex items-center gap-2">
+                <Circle className="w-4 h-4 text-primary" />
+                Pipe Diameter
+              </label>
+              <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                {(pipeRadius * 2 * 100).toFixed(0)} cm
+              </span>
+            </div>
+            <Slider
+              value={[pipeRadius * 100]}
+              onValueChange={(value) => setPipeRadius(value[0] / 100)}
+              min={25}
+              max={100}
+              step={5}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">
+              {diameterInfo.emoji} {diameterInfo.text} - {diameterInfo.desc}
+            </p>
+          </div>
         </div>
         
         {/* Results Dashboard */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl">
             <Droplets className="w-8 h-8 mx-auto text-primary mb-2" />
             <div className="text-2xl font-bold text-primary">
@@ -295,6 +448,14 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
             </div>
             <div className="text-xs text-muted-foreground">Hydraulic Radius (m)</div>
           </div>
+          
+          <div className="text-center p-4 bg-gradient-to-br from-primary/5 to-primary/15 rounded-xl">
+            <Circle className="w-8 h-8 mx-auto text-primary mb-2" />
+            <div className="text-2xl font-bold text-primary">
+              {area.toFixed(3)}
+            </div>
+            <div className="text-xs text-muted-foreground">Flow Area (m²)</div>
+          </div>
         </div>
         
         {/* Kid-friendly explanation */}
@@ -304,7 +465,11 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
             <div>
               <h4 className="font-semibold text-foreground">What's happening?</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                {slope >= 0.05 && roughness <= 0.015 
+                {pipeRadius >= 0.75 && slope >= 0.05 
+                  ? "🌊 WOAH! A big pipe AND steep slope? That's MASSIVE water flow - like a river underground!"
+                  : pipeRadius >= 0.75
+                  ? "🔴 Big pipes can carry LOTS of water! That's why Singapore uses giant underground pipes for monsoons."
+                  : slope >= 0.05 && roughness <= 0.015 
                   ? "🚀 The pipe is steep AND smooth! Water zooms through super fast - just like a waterslide!"
                   : slope >= 0.05
                   ? "🏃 The steep slope makes water flow fast, but the bumpy surface slows it down a bit."
@@ -313,7 +478,9 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
                   : "🐢 A gentle slope and bumpy surface means water takes its time flowing through."}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                <strong>This is St. Venant's Rule 2:</strong> Steeper pipes + smoother walls = faster water!
+                <strong>The Hydraulic Radius Secret:</strong> Bigger pipes have a larger hydraulic radius (R), 
+                which means water can flow faster through them! That's why engineers use massive underground 
+                drains for heavy rain. 🌧️
               </p>
             </div>
           </div>
@@ -329,20 +496,27 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
                 <ul className="list-disc list-inside mt-1 space-y-1">
                   <li>n (roughness) = {roughness.toFixed(3)}</li>
                   <li>S₀ (slope) = {slope.toFixed(4)}</li>
-                  <li>R (hydraulic radius) = {hydraulicRadius.toFixed(3)} m</li>
+                  <li>r (pipe radius) = {pipeRadius.toFixed(2)} m</li>
+                  <li>D (diameter) = {(pipeRadius * 2).toFixed(2)} m</li>
                 </ul>
               </div>
               <div>
-                <strong>Results:</strong>
+                <strong>Derived Values:</strong>
                 <ul className="list-disc list-inside mt-1 space-y-1">
-                  <li>Q (flow rate) = {flowRate.toFixed(4)} m³/s</li>
-                  <li>V (velocity) = {velocity.toFixed(3)} m/s</li>
-                  <li>= {(flowRate * 1000).toFixed(1)} L/s</li>
+                  <li>A (flow area) = {area.toFixed(4)} m²</li>
+                  <li>R (hydraulic radius) = {hydraulicRadius.toFixed(3)} m</li>
                 </ul>
               </div>
             </div>
-            <p className="text-xs mt-2">
-              For a half-full circular pipe: A = πr²/2, P = πr, R = r/2
+            <div className="mt-2 pt-2 border-t border-border">
+              <strong>Results:</strong>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Q (flow rate) = {flowRate.toFixed(4)} m³/s = {(flowRate * 1000).toFixed(1)} L/s</li>
+                <li>V (velocity) = {velocity.toFixed(3)} m/s</li>
+              </ul>
+            </div>
+            <p className="text-xs mt-2 text-muted-foreground">
+              For a half-full circular pipe: A = πr²/2, Wetted Perimeter P = πr, Hydraulic Radius R = A/P = r/2
             </p>
           </div>
         </TechnicalAnnotation>
