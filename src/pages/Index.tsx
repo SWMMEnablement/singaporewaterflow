@@ -5,11 +5,14 @@ import { EquationExplainer } from "@/components/EquationExplainer";
 import { WaterCycleSection } from "@/components/WaterCycleSection";
 import { SWMM5Section } from "@/components/SWMM5Section";
 import { SingaporeSection } from "@/components/SingaporeSection";
+import { DubaiSection } from "@/components/DubaiSection";
 import { QuizSection } from "@/components/QuizSection";
 import { Footer } from "@/components/Footer";
 import { SlopeSimulator } from "@/components/SlopeSimulator";
 import { RoughnessSimulator } from "@/components/RoughnessSimulator";
 import { DrainageGallery } from "@/components/DrainageGallery";
+import { DrainageRace } from "@/components/DrainageRace";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   return (
@@ -59,6 +62,11 @@ const Index = () => {
               </div>
             </div>
             
+            {/* Water Race */}
+            <div className="mt-12 max-w-3xl mx-auto">
+              <DrainageRace />
+            </div>
+            
             {/* Real-World Gallery */}
             <div className="mt-12 max-w-4xl mx-auto">
               <DrainageGallery />
@@ -72,9 +80,43 @@ const Index = () => {
         <div id="swmm5">
           <SWMM5Section />
         </div>
-        <div id="singapore">
-          <SingaporeSection />
-        </div>
+        
+        {/* City Case Studies with Tabs */}
+        <section id="cities" className="py-16 md:py-24 bg-gradient-to-b from-background to-primary/5">
+          <div className="container mx-auto px-6">
+            <div className="text-center mb-8">
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
+                🌍 Cities Around the World
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Different cities face different water challenges! Explore how Singapore and Dubai 
+                use water math to keep their cities safe.
+              </p>
+            </div>
+            
+            <Tabs defaultValue="singapore" className="max-w-5xl mx-auto">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
+                <TabsTrigger value="singapore" className="gap-2 text-base">
+                  🇸🇬 Singapore
+                </TabsTrigger>
+                <TabsTrigger value="dubai" className="gap-2 text-base">
+                  🇦🇪 Dubai
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="singapore" className="mt-0">
+                <div id="singapore">
+                  <SingaporeSection />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="dubai" className="mt-0">
+                <DubaiSection />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </section>
+        
         <QuizSection />
         <div className="py-12 bg-gradient-to-r from-primary/10 to-accent/10">
           <div className="container mx-auto px-6 text-center">
