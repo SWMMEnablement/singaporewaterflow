@@ -9,6 +9,7 @@ import { QuizSection } from "@/components/QuizSection";
 import { Footer } from "@/components/Footer";
 import { SlopeSimulator } from "@/components/SlopeSimulator";
 import { RoughnessSimulator } from "@/components/RoughnessSimulator";
+import { DrainageGallery } from "@/components/DrainageGallery";
 
 const Index = () => {
   return (
@@ -56,6 +57,11 @@ const Index = () => {
                 </p>
                 <RoughnessSimulator />
               </div>
+            </div>
+            
+            {/* Real-World Gallery */}
+            <div className="mt-12 max-w-4xl mx-auto">
+              <DrainageGallery />
             </div>
           </div>
         </section>
