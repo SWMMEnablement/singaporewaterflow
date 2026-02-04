@@ -45,6 +45,18 @@ export const CompletionCertificate = ({
     return stars;
   };
 
+  // HTML escape function to prevent XSS in print window
+  const escapeHtml = (text: string): string => {
+    const htmlEscapes: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
+  };
+
   const handlePrint = () => {
     const printContent = certificateRef.current;
     if (!printContent) return;
@@ -52,11 +64,15 @@ export const CompletionCertificate = ({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    // Escape all dynamic values for safe HTML insertion
+    const safeName = escapeHtml(playerName || "Young Engineer");
+    const safeTitle = escapeHtml(`Drainage Engineer Certificate - ${playerName || "Young Engineer"}`);
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Drainage Engineer Certificate - ${playerName}</title>
+          <title>${safeTitle}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
             
@@ -254,10 +270,10 @@ export const CompletionCertificate = ({
             <p class="subtitle">Singapore Drainage Engineering Academy</p>
             
             <p class="presented-to">This is to certify that</p>
-            <h2 class="name">${playerName || "Young Engineer"}</h2>
+            <h2 class="name">${escapeHtml(playerName || "Young Engineer")}</h2>
             
             <p class="achievement">
-              Has successfully completed all <strong>${totalChallenges} drainage challenges</strong><br>
+              Has successfully completed all <strong>${escapeHtml(String(totalChallenges))} drainage challenges</strong><br>
               and demonstrated exceptional skills in water management engineering!
             </p>
             
