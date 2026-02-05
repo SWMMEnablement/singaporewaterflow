@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, XCircle, Trophy, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TechnicalAnnotation } from "./TechnicalAnnotation";
-
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 interface Question {
   id: number;
   question: string;
@@ -131,6 +131,8 @@ export const QuizSection = () => {
     new Array(quizQuestions.length).fill(false)
   );
 
+  const { playCelebration, playWrongAnswer, playVictoryFanfare } = useSoundEffects();
+
   const handleAnswerSelect = (answerIndex: number) => {
     if (showResult) return;
     setSelectedAnswer(answerIndex);
@@ -140,8 +142,13 @@ export const QuizSection = () => {
     if (selectedAnswer === null) return;
     
     setShowResult(true);
-    if (selectedAnswer === quizQuestions[currentQuestion].correctAnswer) {
+    const isCorrectAnswer = selectedAnswer === quizQuestions[currentQuestion].correctAnswer;
+    
+    if (isCorrectAnswer) {
       setScore(score + 1);
+      playCelebration(); // Play celebration sound on correct answer
+    } else {
+      playWrongAnswer(); // Play gentle feedback on wrong answer
     }
     
     const newAnswered = [...answeredQuestions];
@@ -156,6 +163,7 @@ export const QuizSection = () => {
       setShowResult(false);
     } else {
       setQuizComplete(true);
+      playVictoryFanfare(); // Play victory fanfare when quiz is complete
     }
   };
 
