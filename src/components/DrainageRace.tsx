@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, RotateCcw, Play, Droplets } from "lucide-react";
+import { Trophy, RotateCcw, Play, Droplets, Volume2, VolumeX } from "lucide-react";
+import { useSoundEffects } from "@/hooks/useSoundEffects";
 
 interface SurfaceType {
   id: string;
@@ -34,8 +35,18 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
   const [leftProgress, setLeftProgress] = useState(0);
   const [rightProgress, setRightProgress] = useState(0);
   const [winner, setWinner] = useState<"left" | "right" | "tie" | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
+  const stopWaterFlowRef = useRef<(() => void) | null>(null);
+  
+  const { 
+    playRaceStart, 
+    startWaterFlow, 
+    updateWaterFlowIntensity, 
+    stopWaterFlow, 
+    playVictoryFanfare 
+  } = useSoundEffects();
 
   // Calculate velocity based on Manning's equation (simplified)
   const getVelocity = (n: number) => {
@@ -51,6 +62,12 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
     setWinner(null);
     startTimeRef.current = Date.now();
 
+    // Play start sound and begin water flow
+    if (soundEnabled) {
+      playRaceStart();
+      stopWaterFlowRef.current = startWaterFlow(0.3);
+    }
+
     const leftVelocity = getVelocity(leftSurface.manningN);
     const rightVelocity = getVelocity(rightSurface.manningN);
     const maxVelocity = Math.max(leftVelocity, rightVelocity);
@@ -63,8 +80,19 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
       setLeftProgress(leftPos);
       setRightProgress(rightPos);
 
+      // Update water flow intensity based on progress
+      if (soundEnabled) {
+        const avgProgress = (leftPos + rightPos) / 200;
+        updateWaterFlowIntensity(0.3 + avgProgress * 0.7);
+      }
+
       if (leftPos >= 100 || rightPos >= 100) {
         setIsRacing(false);
+        // Stop water flow and play victory
+        if (soundEnabled) {
+          stopWaterFlow();
+          playVictoryFanfare();
+        }
         if (leftPos >= 100 && rightPos >= 100) {
           setWinner("tie");
         } else if (leftPos >= 100) {
@@ -84,6 +112,9 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
+    if (soundEnabled) {
+      stopWaterFlow();
+    }
     setIsRacing(false);
     setLeftProgress(0);
     setRightProgress(0);
@@ -95,8 +126,9 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      stopWaterFlow();
     };
-  }, []);
+  }, [stopWaterFlow]);
 
   // Reset race when surfaces change
   useEffect(() => {
@@ -140,12 +172,25 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
   return (
     <Card className={className}>
       <CardHeader className="bg-gradient-to-r from-blue-500/10 to-purple-500/10">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Trophy className="w-6 h-6 text-yellow-500" />
-          Water Race! 🏁
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Trophy className="w-6 h-6 text-yellow-500" />
+            Water Race! 🏁
+          </CardTitle>
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className="p-2 rounded-full hover:bg-muted transition-colors"
+            title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+          >
+            {soundEnabled ? (
+              <Volume2 className="w-5 h-5 text-primary" />
+            ) : (
+              <VolumeX className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Pick two surfaces and watch water race through them. Which one is faster?
+          Pick two surfaces and watch water race through them. Which one is faster? 🔊
         </p>
       </CardHeader>
 
