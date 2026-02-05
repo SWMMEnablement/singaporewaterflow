@@ -14,6 +14,7 @@ import { DrainageGallery } from "@/components/DrainageGallery";
 import { DrainageRace } from "@/components/DrainageRace";
 import { RainfallComparison } from "@/components/RainfallComparison";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+ import { DrStVenant } from "@/components/DrStVenant";
 
 const Index = () => {
   return (
@@ -75,6 +76,15 @@ const Index = () => {
           </div>
         </section>
         
+         {/* Ask Dr. St. Venant Section */}
+         <section className="py-16 bg-gradient-to-b from-secondary/20 to-background">
+           <div className="container mx-auto px-6">
+             <div className="max-w-3xl mx-auto">
+               <DrStVenant />
+             </div>
+           </div>
+         </section>
+         
         <div id="water-cycle">
           <WaterCycleSection />
         </div>
