@@ -273,7 +273,7 @@ export const RoughnessSimulator = ({ className = "" }: RoughnessSimulatorProps) 
             </div>
 
             {/* Speed Indicator */}
-            <div className="w-20 flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-2">
+            <div className="w-full sm:w-20 flex flex-row sm:flex-col items-center justify-center bg-secondary/30 rounded-lg p-2 gap-2 sm:gap-0">
               <Droplets className={`w-8 h-8 mb-2 ${speedLabel.color}`} />
               <div className={`text-center font-bold text-sm ${speedLabel.color}`}>
                 {speedLabel.text}
