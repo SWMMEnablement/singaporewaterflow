@@ -149,7 +149,7 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
             </div>
             
             {/* Rain container */}
-            <div className="relative h-48 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 rounded-lg overflow-hidden">
+            <div className="relative h-36 sm:h-48 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 rounded-lg overflow-hidden">
               {/* Sun */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 text-4xl">☀️</div>
               
