@@ -1,5 +1,6 @@
-import { Cloud, Droplets, ArrowDown, Building2, Waves, Repeat } from "lucide-react";
+import { Cloud, Droplets, ArrowDown, Building2, Waves, Repeat, Volume2, VolumeX } from "lucide-react";
 import { WaterAnimation } from "./WaterAnimation";
+import { useRainAmbience } from "@/hooks/useRainAmbience";
 
 const cycleSteps = [
   {
