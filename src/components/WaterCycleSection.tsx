@@ -56,10 +56,26 @@ export const WaterCycleSection = () => {
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
             Meet the Water Cycle!
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
             Follow a raindrop&apos;s adventure from the sky to the drains of Singapore! 
             This is how rain becomes stormwater. 💧➡️🌊
           </p>
+          <button
+            onClick={toggle}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-colors text-sm font-medium"
+          >
+            {isPlaying ? (
+              <>
+                <Volume2 className="w-4 h-4 text-primary animate-pulse" />
+                <span>Rain sounds playing… tap to stop</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-4 h-4 text-muted-foreground" />
+                <span>🌧️ Listen to the rain</span>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Animated Water Graphic */}
