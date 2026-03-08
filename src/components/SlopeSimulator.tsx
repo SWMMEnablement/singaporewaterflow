@@ -236,8 +236,8 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
   const diameterInfo = getDiameterDesc(pipeRadius);
   
   return (
-    <Card className={`p-6 ${className}`}>
-      <div className="space-y-6">
+    <Card className={`p-4 md:p-6 ${className}`}>
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2">
