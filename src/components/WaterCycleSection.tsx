@@ -46,6 +46,8 @@ const cycleSteps = [
 ];
 
 export const WaterCycleSection = () => {
+  const { isPlaying, toggle } = useRainAmbience();
+
   return (
     <section className="py-16 md:py-24 bg-gradient-to-b from-background to-primary/5 relative overflow-hidden">
       <div className="container mx-auto px-6">
