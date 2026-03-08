@@ -177,9 +177,9 @@ export const RoughnessSimulator = ({ className = "" }: RoughnessSimulatorProps) 
 
         {/* Visualization */}
         <div className="relative">
-          <div className="flex gap-4 items-stretch">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch">
             {/* Surface Channel */}
-            <div className="flex-1 relative h-48 rounded-lg overflow-hidden border-2 border-border">
+            <div className="flex-1 relative h-40 sm:h-48 rounded-lg overflow-hidden border-2 border-border">
               {/* Surface texture */}
               <div className={`absolute inset-0 ${selectedMaterial.pattern}`}>
                 {/* Texture overlay based on material */}
@@ -273,7 +273,7 @@ export const RoughnessSimulator = ({ className = "" }: RoughnessSimulatorProps) 
             </div>
 
             {/* Speed Indicator */}
-            <div className="w-20 flex flex-col items-center justify-center bg-secondary/30 rounded-lg p-2">
+            <div className="w-full sm:w-20 flex flex-row sm:flex-col items-center justify-center bg-secondary/30 rounded-lg p-2 gap-2 sm:gap-0">
               <Droplets className={`w-8 h-8 mb-2 ${speedLabel.color}`} />
               <div className={`text-center font-bold text-sm ${speedLabel.color}`}>
                 {speedLabel.text}

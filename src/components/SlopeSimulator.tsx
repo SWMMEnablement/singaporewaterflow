@@ -236,8 +236,8 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
   const diameterInfo = getDiameterDesc(pipeRadius);
   
   return (
-    <Card className={`p-6 ${className}`}>
-      <div className="space-y-6">
+    <Card className={`p-4 md:p-6 ${className}`}>
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2">
@@ -347,7 +347,7 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
         </div>
         
         {/* Controls */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Slope Control */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -424,37 +424,37 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
         </div>
         
         {/* Results Dashboard */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl">
-            <Droplets className="w-8 h-8 mx-auto text-primary mb-2" />
-            <div className="text-2xl font-bold text-primary">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="text-center p-3 md:p-4 bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl">
+            <Droplets className="w-6 h-6 md:w-8 md:h-8 mx-auto text-primary mb-1 md:mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-primary">
               {velocity.toFixed(2)}
             </div>
-            <div className="text-xs text-muted-foreground">Velocity (m/s)</div>
+            <div className="text-[10px] md:text-xs text-muted-foreground">Velocity (m/s)</div>
           </div>
           
-          <div className="text-center p-4 bg-gradient-to-br from-accent/10 to-accent/20 rounded-xl">
-            <Gauge className="w-8 h-8 mx-auto text-accent mb-2" />
-            <div className="text-2xl font-bold text-accent">
+          <div className="text-center p-3 md:p-4 bg-gradient-to-br from-accent/10 to-accent/20 rounded-xl">
+            <Gauge className="w-6 h-6 md:w-8 md:h-8 mx-auto text-accent mb-1 md:mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-accent">
               {flowRate.toFixed(3)}
             </div>
-            <div className="text-xs text-muted-foreground">Flow Rate (m³/s)</div>
+            <div className="text-[10px] md:text-xs text-muted-foreground">Flow Rate (m³/s)</div>
           </div>
           
-          <div className="text-center p-4 bg-gradient-to-br from-secondary/30 to-secondary/50 rounded-xl">
-            <div className="w-8 h-8 mx-auto text-secondary-foreground mb-2 flex items-center justify-center font-bold text-lg">R</div>
-            <div className="text-2xl font-bold text-secondary-foreground">
+          <div className="text-center p-3 md:p-4 bg-gradient-to-br from-secondary/30 to-secondary/50 rounded-xl">
+            <div className="w-6 h-6 md:w-8 md:h-8 mx-auto text-secondary-foreground mb-1 md:mb-2 flex items-center justify-center font-bold text-base md:text-lg">R</div>
+            <div className="text-xl md:text-2xl font-bold text-secondary-foreground">
               {hydraulicRadius.toFixed(3)}
             </div>
-            <div className="text-xs text-muted-foreground">Hydraulic Radius (m)</div>
+            <div className="text-[10px] md:text-xs text-muted-foreground">Hydraulic Radius (m)</div>
           </div>
           
-          <div className="text-center p-4 bg-gradient-to-br from-primary/5 to-primary/15 rounded-xl">
-            <Circle className="w-8 h-8 mx-auto text-primary mb-2" />
-            <div className="text-2xl font-bold text-primary">
+          <div className="text-center p-3 md:p-4 bg-gradient-to-br from-primary/5 to-primary/15 rounded-xl">
+            <Circle className="w-6 h-6 md:w-8 md:h-8 mx-auto text-primary mb-1 md:mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-primary">
               {area.toFixed(3)}
             </div>
-            <div className="text-xs text-muted-foreground">Flow Area (m²)</div>
+            <div className="text-[10px] md:text-xs text-muted-foreground">Flow Area (m²)</div>
           </div>
         </div>
         

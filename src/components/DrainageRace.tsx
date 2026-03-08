@@ -146,21 +146,21 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
   }) => (
     <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-4 sm:grid-cols-4 gap-1.5 sm:gap-1">
         {SURFACES.map((surface) => (
           <button
             key={surface.id}
             onClick={() => !isRacing && onSelect(surface)}
             disabled={isRacing}
-            className={`p-2 rounded-lg border-2 transition-all text-center ${
+            className={`p-1.5 sm:p-2 rounded-lg border-2 transition-all text-center min-h-[3rem] ${
               selected.id === surface.id
                 ? "border-primary bg-primary/10 scale-105"
                 : "border-border hover:border-primary/50 disabled:opacity-50"
             }`}
             title={surface.name}
           >
-            <div className="text-xl">{surface.emoji}</div>
-            <div className="text-[10px] leading-tight text-muted-foreground truncate">
+            <div className="text-lg sm:text-xl">{surface.emoji}</div>
+            <div className="text-[9px] sm:text-[10px] leading-tight text-muted-foreground truncate">
               {surface.name.split(" ")[0]}
             </div>
           </button>
@@ -311,15 +311,15 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
         </div>
 
         {/* Speed comparison */}
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div className="bg-blue-500/10 rounded-lg p-3">
-            <div className="text-lg font-bold text-blue-600">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center">
+          <div className="bg-blue-500/10 rounded-lg p-2 sm:p-3">
+            <div className="text-base sm:text-lg font-bold text-blue-600">
               {getVelocity(leftSurface.manningN).toFixed(2)} m/s
             </div>
             <div className="text-xs text-muted-foreground">{leftSurface.name} Speed</div>
           </div>
-          <div className="bg-cyan-500/10 rounded-lg p-3">
-            <div className="text-lg font-bold text-cyan-600">
+          <div className="bg-cyan-500/10 rounded-lg p-2 sm:p-3">
+            <div className="text-base sm:text-lg font-bold text-cyan-600">
               {getVelocity(rightSurface.manningN).toFixed(2)} m/s
             </div>
             <div className="text-xs text-muted-foreground">{rightSurface.name} Speed</div>

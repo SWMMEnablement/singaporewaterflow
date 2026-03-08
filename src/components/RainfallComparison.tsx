@@ -99,7 +99,7 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
             </div>
             
             {/* Rain container */}
-            <div className="relative h-48 bg-gradient-to-b from-gray-700 via-gray-600 to-green-800 rounded-lg overflow-hidden">
+            <div className="relative h-36 sm:h-48 bg-gradient-to-b from-gray-700 via-gray-600 to-green-800 rounded-lg overflow-hidden">
               {/* Clouds */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 text-4xl opacity-80">☁️</div>
               
@@ -129,11 +129,11 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
             </div>
             
             {/* Counter */}
-            <div className="mt-3 text-center">
-              <div className="text-3xl font-mono font-bold text-primary">
+            <div className="mt-2 sm:mt-3 text-center">
+              <div className="text-2xl sm:text-3xl font-mono font-bold text-primary">
                 {singaporeCount.toLocaleString()}
               </div>
-              <div className="text-sm text-muted-foreground">mm per year</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">mm per year</div>
               <div className="text-xs text-muted-foreground mt-1">
                 ≈ {Math.round(singaporeCount / 10)} bathtubs!
               </div>
@@ -149,7 +149,7 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
             </div>
             
             {/* Rain container */}
-            <div className="relative h-48 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 rounded-lg overflow-hidden">
+            <div className="relative h-36 sm:h-48 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 rounded-lg overflow-hidden">
               {/* Sun */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 text-4xl">☀️</div>
               
@@ -184,11 +184,11 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
             </div>
             
             {/* Counter */}
-            <div className="mt-3 text-center">
-              <div className="text-3xl font-mono font-bold text-amber-600">
+            <div className="mt-2 sm:mt-3 text-center">
+              <div className="text-2xl sm:text-3xl font-mono font-bold text-amber-600">
                 {dubaiCount.toLocaleString()}
               </div>
-              <div className="text-sm text-muted-foreground">mm per year</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">mm per year</div>
               <div className="text-xs text-muted-foreground mt-1">
                 ≈ {Math.round(dubaiCount / 10) || "<1"} bathtub
               </div>
@@ -219,7 +219,7 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
         {/* Comparison Stats */}
         <div className="bg-secondary/30 rounded-lg p-4">
           <h4 className="font-bold mb-3 text-center">📊 The Difference</h4>
-          <div className="grid grid-cols-3 gap-4 text-center text-sm">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center text-xs sm:text-sm">
             <div>
               <div className="font-mono text-lg font-bold text-primary">24×</div>
               <div className="text-xs text-muted-foreground">More rain in Singapore</div>
