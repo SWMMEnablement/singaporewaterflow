@@ -129,11 +129,11 @@ export const RainfallComparison = ({ className = "" }: RainfallComparisonProps) 
             </div>
             
             {/* Counter */}
-            <div className="mt-3 text-center">
-              <div className="text-3xl font-mono font-bold text-primary">
+            <div className="mt-2 sm:mt-3 text-center">
+              <div className="text-2xl sm:text-3xl font-mono font-bold text-primary">
                 {singaporeCount.toLocaleString()}
               </div>
-              <div className="text-sm text-muted-foreground">mm per year</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">mm per year</div>
               <div className="text-xs text-muted-foreground mt-1">
                 ≈ {Math.round(singaporeCount / 10)} bathtubs!
               </div>
