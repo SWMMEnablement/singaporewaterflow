@@ -311,9 +311,9 @@ export const DrainageRace = ({ className = "" }: DrainageRaceProps) => {
         </div>
 
         {/* Speed comparison */}
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div className="bg-blue-500/10 rounded-lg p-3">
-            <div className="text-lg font-bold text-blue-600">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 text-center">
+          <div className="bg-blue-500/10 rounded-lg p-2 sm:p-3">
+            <div className="text-base sm:text-lg font-bold text-blue-600">
               {getVelocity(leftSurface.manningN).toFixed(2)} m/s
             </div>
             <div className="text-xs text-muted-foreground">{leftSurface.name} Speed</div>
