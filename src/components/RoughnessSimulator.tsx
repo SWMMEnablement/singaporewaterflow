@@ -177,9 +177,9 @@ export const RoughnessSimulator = ({ className = "" }: RoughnessSimulatorProps) 
 
         {/* Visualization */}
         <div className="relative">
-          <div className="flex gap-4 items-stretch">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch">
             {/* Surface Channel */}
-            <div className="flex-1 relative h-48 rounded-lg overflow-hidden border-2 border-border">
+            <div className="flex-1 relative h-40 sm:h-48 rounded-lg overflow-hidden border-2 border-border">
               {/* Surface texture */}
               <div className={`absolute inset-0 ${selectedMaterial.pattern}`}>
                 {/* Texture overlay based on material */}
