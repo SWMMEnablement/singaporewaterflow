@@ -424,13 +424,13 @@ export const SlopeSimulator = ({ className = "" }: SlopeSimulatorProps) => {
         </div>
         
         {/* Results Dashboard */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl">
-            <Droplets className="w-8 h-8 mx-auto text-primary mb-2" />
-            <div className="text-2xl font-bold text-primary">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <div className="text-center p-3 md:p-4 bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl">
+            <Droplets className="w-6 h-6 md:w-8 md:h-8 mx-auto text-primary mb-1 md:mb-2" />
+            <div className="text-xl md:text-2xl font-bold text-primary">
               {velocity.toFixed(2)}
             </div>
-            <div className="text-xs text-muted-foreground">Velocity (m/s)</div>
+            <div className="text-[10px] md:text-xs text-muted-foreground">Velocity (m/s)</div>
           </div>
           
           <div className="text-center p-4 bg-gradient-to-br from-accent/10 to-accent/20 rounded-xl">
