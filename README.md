@@ -1,73 +1,68 @@
-# Welcome to your Lovable project
+# Singapore Water Flow - St. Venant Water Flow for Grandkids
 
-## Project info
+> _README added by Robert Dickinson via Comet._
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black) ![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white) ![shadcn/ui](https://img.shields.io/badge/shadcn--ui-000000?logo=shadcnui&logoColor=white)
 
-## How can I edit this code?
+## About
 
-There are several ways of editing your application.
+**Singapore Water Flow** (St. Venant Water Flow for Grandkids) is an interactive educational web application that teaches children - primarily under 10, with content up to age 13 - about fluid dynamics, engineering, and the water cycle. It uses metaphors and games to translate complex hydraulics for younger audiences, while offering a "Technical Mode" for older students that reveals the real equations and details.
 
-**Use Lovable**
+The app introduces the **Saint-Venant equations** (the foundation of open-channel flow), **SWMM5** stormwater management, Manning's roughness, and real-world case studies comparing monsoon and flash-flood management in Singapore and Dubai.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+It is part of the SWMMEnablement collection and is built on a Vite + React + TypeScript frontend with a Supabase backend.
 
-Changes made via Lovable will be committed automatically to this repo.
+## What's Inside
 
-**Use your preferred IDE**
+| Feature | Description |
+| --- | --- |
+| Dual-mode system | Global toggle between "Kid-Friendly" (simplified) and "Technical Mode" (real equations and details). |
+| Slope simulator | Drag-and-build to see how slope angle affects water speed. |
+| Roughness simulator | Pick surface types (concrete, grass, etc.) to see how texture slows flow. |
+| Drainage race | Animation comparing water speed across different surfaces. |
+| Challenge games | Singapore Storm Challenge (SWMM5-themed) and Dubai Flash Flood Challenge (ICM InfoWorks-themed). |
+| Quiz engine | 15-question quiz across History, Equations, Roughness, Singapore, and SWMM5, with feedback and a completion certificate. |
+| Educational tools | AI-powered mascot (Dr. St. Venant), animated water cycle, and a Parent/Teacher guide with curriculum links. |
+| Hands-on activities | Coloring page and a "Build Drain" construction activity. |
+| Glossary | Searchable list of 18 hydraulic engineering terms. |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Tech Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+| Layer | Technology |
+| --- | --- |
+| Language | TypeScript |
+| Framework | React 18 |
+| Build tool | Vite |
+| Styling | Tailwind CSS + shadcn/ui |
+| Backend | Lovable Cloud (Supabase) |
+| State | React Context + TanStack React Query |
+| Charts / icons | Recharts, Lucide React |
+| Testing | Playwright |
 
-Follow these steps:
+## Getting Started
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# Clone the repository
+git clone https://github.com/SWMMEnablement/singaporewaterflow.git
+cd singaporewaterflow
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+This project uses Supabase Cloud features. Provide the required environment variables (see `.env`) for full backend functionality. Then open the local URL printed by Vite (typically http://localhost:5173) in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Build for production
+npm run build
 
-**Use GitHub Codespaces**
+# Preview the production build
+npm run preview
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## License
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Released under the MIT License unless otherwise noted in this repository.
