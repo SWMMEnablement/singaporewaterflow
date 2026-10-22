@@ -71,8 +71,8 @@ const DubaiChallenge = () => {
   const [stormIntensity, setStormIntensity] = useState(0);
   const [sandCover, setSandCover] = useState(50); // Sand absorbs some water
   
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
-  const spawnIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const gameLoopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spawnIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropIdRef = useRef(0);
   const puddleIdRef = useRef(0);
   

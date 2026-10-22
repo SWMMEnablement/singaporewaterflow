@@ -767,7 +767,7 @@ const BuildDrain = () => {
     const stored = localStorage.getItem(BEST_TIMES_KEY);
     return stored ? JSON.parse(stored) : {};
   });
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Tutorial system
   const {

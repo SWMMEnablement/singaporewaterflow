@@ -58,8 +58,8 @@ const StormChallenge = () => {
   const [floodLevel, setFloodLevel] = useState(0);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
-  const spawnIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const gameLoopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spawnIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropIdRef = useRef(0);
   
   const { playWaterDrop, playOverflow, playLevelComplete, playStart } = useSoundEffects();
